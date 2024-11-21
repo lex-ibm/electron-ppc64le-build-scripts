@@ -1,0 +1,22 @@
+diff --git a/electron/shell/browser/extensions/api/runtime/electron_runtime_api_delegate.cc b/electron/shell/browser/extensions/api/runtime/electron_runtime_api_delegate.cc
+index be69be338f..ad839c1231 100644
+--- a/electron/shell/browser/extensions/api/runtime/electron_runtime_api_delegate.cc
++++ b/electron/shell/browser/extensions/api/runtime/electron_runtime_api_delegate.cc
+@@ -68,6 +68,8 @@ bool ElectronRuntimeAPIDelegate::GetPlatformInfo(PlatformInfo* info) {
+     info->arch = extensions::api::runtime::PlatformArch::kX86_32;
+   } else if (strcmp(arch, "x64") == 0) {
+     info->arch = extensions::api::runtime::PlatformArch::kX86_64;
++  } else if (strcmp(arch, "ppc64") == 0) {
++    info->arch = extensions::api::runtime::PlatformArch::kPpc64;
+   } else {
+     NOTREACHED();
+   }
+@@ -79,6 +81,8 @@ bool ElectronRuntimeAPIDelegate::GetPlatformInfo(PlatformInfo* info) {
+     info->nacl_arch = extensions::api::runtime::PlatformNaclArch::kX86_32;
+   } else if (strcmp(nacl_arch, "x86-64") == 0) {
+     info->nacl_arch = extensions::api::runtime::PlatformNaclArch::kX86_64;
++  } else if (strcmp(nacl_arch, "ppc64") == 0) {
++    info->nacl_arch = extensions::api::runtime::PlatformNaclArch::kPpc64;
+   } else {
+     NOTREACHED();
+   }

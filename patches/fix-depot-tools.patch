@@ -1,0 +1,27 @@
+diff --git a/gclient_scm.py b/gclient_scm.py
+index 4437c057..30e8891a 100644
+--- a/gclient_scm.py
++++ b/gclient_scm.py
+@@ -1813,21 +1813,7 @@ class CipdRoot(object):
+ 
+     def ensure(self):
+         """Run `cipd ensure`."""
+-        with self._mutator_lock:
+-            with self._create_ensure_file() as ensure_file:
+-                cmd = [
+-                    'cipd',
+-                    'ensure',
+-                    '-log-level',
+-                    self._log_level,
+-                    '-root',
+-                    self.root_dir,
+-                    '-ensure-file',
+-                    ensure_file,
+-                ]
+-                gclient_utils.CheckCallAndFilter(cmd,
+-                                                 print_stdout=True,
+-                                                 show_header=True)
++        return
+ 
+     @contextlib.contextmanager
+     def _create_ensure_file_for_resolve(self):
