@@ -52,8 +52,9 @@ if [ -z "$(ls -A "${CWD}"/electron/src)" ]; then
   git apply "${CWD}"/patches/fedora/chromium-127-rust-clanglib.patch
 
   # Electron PowerPC64 Little Endian support
-  git apply "${CWD}"/patches/electron-32-fix-runtime-api-delegate.patch
-  git apply "${CWD}"/patches/electron-32-fix-ppc64-syscalls-headers.patch
+  git apply "${CWD}"/patches/electron-32-001-fix-runtime-api-delegate.patch
+  git apply "${CWD}"/patches/electron-32-002-fix-ppc64-syscalls-headers.patch
+  git apply "${CWD}"/patches/electron-32-003-enable-ppc64le-cross-compile.patch
 
   # Use RHEL's libpng
   build/linux/unbundle/replace_gn_files.py --system-libraries libpng
@@ -97,7 +98,7 @@ ELECTRON_GN_DEFINES+=' rust_sysroot_absolute="/usr"'
 ELECTRON_GN_DEFINES+=" rust_bindgen_root=\"$rust_bindgen_root\""
 ELECTRON_GN_DEFINES+=" rustc_version=\"$rustc_version\""
 
-ELECTRON_GN_DEFINES+=' use_system_libffi=true'
+# ELECTRON_GN_DEFINES+=' use_system_libffi=true'
 
 ELECTRON_GN_DEFINES+=' target_cpu="ppc64"'
 ELECTRON_GN_DEFINES+=' target_os="linux"'
@@ -105,7 +106,7 @@ ELECTRON_GN_DEFINES+=' current_os="linux"'
 ELECTRON_GN_DEFINES+=' treat_warnings_as_errors=false'
 ELECTRON_GN_DEFINES+=' use_gnome_keyring=false'
 
-# ELECTRON_GN_DEFINES+=' use_sysroot=true'
+ELECTRON_GN_DEFINES+=' use_sysroot=true'
 
 cd electron/src
 

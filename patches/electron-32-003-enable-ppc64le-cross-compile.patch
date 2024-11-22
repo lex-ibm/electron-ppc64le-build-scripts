@@ -1,0 +1,130 @@
+diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
+index bb8cb1eda5ae0..55428b7283e15 100644
+--- a/build/config/compiler/BUILD.gn
++++ b/build/config/compiler/BUILD.gn
+@@ -1456,6 +1456,10 @@ config("compiler_cpu_abi") {
+       } else {
+         cflags += [ "-m64" ]
+         ldflags += [ "-m64" ]
++        if (is_clang) {
++          cflags += [ "--target=powerpc64le-linux-gnu" ]
++          ldflags += [ "--target=powerpc64le-linux-gnu" ]
++        } 
+       }
+     } else if (current_cpu == "riscv64") {
+       if (is_clang && !is_android) {
+diff --git a/build/config/sysroot.gni b/build/config/sysroot.gni
+index 47fe4cbc840dd..3825cd75f17f0 100644
+--- a/build/config/sysroot.gni
++++ b/build/config/sysroot.gni
+@@ -49,6 +49,8 @@ if (sysroot == "") {
+       sysroot = "$target_sysroot_dir/debian_bullseye_armhf-sysroot"
+     } else if (current_cpu == "arm64") {
+       sysroot = "$target_sysroot_dir/debian_bullseye_arm64-sysroot"
++    } else if (current_cpu == "ppc64") {
++      sysroot = "$target_sysroot_dir/debian_bullseye_ppc64el-sysroot"
+     } else {
+       assert(false, "No linux sysroot for cpu: $target_cpu")
+     }
+diff --git a/build/toolchain/linux/BUILD.gn b/build/toolchain/linux/BUILD.gn
+index 00e866896f9a7..25366ef0da364 100644
+--- a/build/toolchain/linux/BUILD.gn
++++ b/build/toolchain/linux/BUILD.gn
+@@ -30,6 +30,14 @@ clang_toolchain("clang_arm64") {
+   }
+ }
+ 
++clang_toolchain("clang_arm64_v8_ppc64") {
++  toolchain_args = {
++    current_cpu = "arm64"
++    current_os = "linux"
++    v8_current_cpu = "ppc64"
++  }
++}
++
+ gcc_toolchain("arm64") {
+   toolprefix = "aarch64-linux-gnu-"
+ 
+@@ -179,6 +187,13 @@ clang_v8_toolchain("clang_x64_v8_loong64") {
+   }
+ }
+ 
++clang_v8_toolchain("clang_x64_v8_ppc64") {
++  toolchain_args = {
++    current_cpu = "x64"
++    v8_current_cpu = "ppc64"
++  }
++}
++
+ # In a LaCrOS build, this toolchain is intended to be used as an alternate
+ # toolchain to build Ash-Chrome in a subdirectory.
+ # This is a test-only toolchain.
+diff --git a/chrome/installer/linux/BUILD.gn b/chrome/installer/linux/BUILD.gn
+index 51f7c978a0b32..26ea8dab2a4c5 100644
+--- a/chrome/installer/linux/BUILD.gn
++++ b/chrome/installer/linux/BUILD.gn
+@@ -453,6 +453,8 @@ template("linux_package") {
+       deb_arch = "mips64el"
+     } else if (current_cpu == "loong64") {
+       deb_arch = "loong64"
++    } else if (current_cpu == "ppc64") {
++      deb_arch = "ppc64el"
+     } else {
+       assert(false, "Linux installer not configured for this architecture.")
+     }
+@@ -504,6 +506,8 @@ template("linux_package") {
+         rpm_arch = "mips64el"
+       } else if (current_cpu == "loong64") {
+         rpm_arch = "loongarch64"
++      } else if (current_cpu == "ppc64") {
++        rpm_arch = "ppc64le"
+       } else {
+         assert(false, "Linux installer not configured for this architecture.")
+       }
+
+diff --git a/v8/BUILD.gn b/v8/BUILD.gn
+index 01f34e14198..24b5b0afb74 100644
+--- a/v8/BUILD.gn
++++ b/v8/BUILD.gn
+@@ -1415,7 +1415,7 @@ config("toolchain") {
+       defines += [ "V8_TARGET_ARCH_PPC64" ]
+       cflags += [ "-ffp-contract=off" ]
+     }
+-    if (host_byteorder == "little") {
++    if (host_byteorder == "little" && current_cpu == "ppc64") {
+       defines += [ "V8_TARGET_ARCH_PPC_LE" ]
+         cflags += [
+         # Enable usage of AltiVec, VSX, and other POWER8 and higher features
+@@ -1423,7 +1423,7 @@ config("toolchain") {
+         "-maltivec",
+         "-mvsx",
+       ]
+-    } else if (host_byteorder == "big") {
++    } else if (host_byteorder == "big" && current_cpu == "ppc64") {
+       defines += [ "V8_TARGET_ARCH_PPC_BE" ]
+       if (current_os == "aix") {
+         cflags += [
+diff --git a/v8/gni/snapshot_toolchain.gni b/v8/gni/snapshot_toolchain.gni
+index c7faa8ca589..8c3d2dcedab 100644
+--- a/v8/gni/snapshot_toolchain.gni
++++ b/v8/gni/snapshot_toolchain.gni
+@@ -70,7 +70,7 @@ if (v8_snapshot_toolchain == "") {
+     # * targeting win/x64 on a linux/x64 host
+     # * targeting win/arm64 on a mac/arm64 host
+     v8_snapshot_toolchain = host_toolchain
+-  } else if (host_cpu == "arm64" && current_cpu == "x64") {
++  } else if (host_cpu == "arm64" && (current_cpu == "x64" || current_cpu == "ppc64")) {
+     # Cross-build from arm64 to intel (likely on an Apple Silicon mac).
+     v8_snapshot_toolchain =
+         "//build/toolchain/${host_os}:clang_arm64_v8_$v8_current_cpu"
+@@ -82,7 +82,7 @@ if (v8_snapshot_toolchain == "") {
+     if (v8_current_cpu == "x86") {
+       _cpus = v8_current_cpu
+     } else if (v8_current_cpu == "arm64" || v8_current_cpu == "mips64el" ||
+-               v8_current_cpu == "riscv64" || v8_current_cpu == "loong64") {
++               v8_current_cpu == "riscv64" || v8_current_cpu == "loong64" || v8_current_cpu == "ppc64") {
+       if (is_win && v8_current_cpu == "arm64") {
+         # set _cpus to blank for Windows ARM64 so host_toolchain could be
+         # selected as snapshot toolchain later.
+
+

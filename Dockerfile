@@ -90,3 +90,12 @@ RUN --mount=type=bind,source=patches/fix-gn.patch,dst=/tmp/fix-gn.patch \
     ninja -j $(nproc) -C out
 
 ENV PATH="/opt/depot_tools:/opt/gn/out:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+RUN if [[ $(uname -m) != "ppc64le" ]]; then \
+        cd /; \
+        dnf makecache --forcearch=ppc64le; \
+        dnf download --forcearch=ppc64le compiler-rt rust-std-static; \
+        rpm2cpio compiler-rt-*.rpm | cpio -idmv './usr/lib/clang/18/lib/ppc64le-redhat-linux-gnu*'; \
+        rpm2cpio rust-std-static-*.rpm | cpio -idmv './usr/lib/rustlib/powerpc64le-unknown-linux-gnu*'; \
+        rm compiler-rt-*.rpm rust-std-static-*.rpm; \
+    fi
