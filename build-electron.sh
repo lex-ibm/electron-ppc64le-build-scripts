@@ -57,7 +57,7 @@ if [ -z "$(ls -A "${CWD}"/electron/src)" ]; then
   git apply "${CWD}"/patches/electron-32-003-enable-ppc64le-cross-compile.patch
 
   # Use RHEL's libpng
-  build/linux/unbundle/replace_gn_files.py --system-libraries libpng
+  # build/linux/unbundle/replace_gn_files.py --system-libraries libpng
 
   cd ../../
 fi
@@ -119,7 +119,7 @@ cp "$(command -v eu-strip)" buildtools/third_party/eu-strip/bin/eu-strip
 if [ ! -f "${CWD}"/electron/src/out/Release/electron ]; then
   gn gen out/Release --args="import(\"//electron/build/args/release.gn\") ${ELECTRON_GN_DEFINES}"
   ninja -j "$(nproc)" -C out/Release electron
-  electron/script/strip-binaries.py -d out/Release
+  electron/script/strip-binaries.py --target-cpu ppc64 -d out/Release
   ninja -C out/Release electron:electron_dist_zip
 fi
 
