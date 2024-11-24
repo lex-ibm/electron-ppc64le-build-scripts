@@ -13,7 +13,7 @@ jobs:
         volumes:
             - /opt/electron-git-cache:/opt/electron-git-cache
             - /opt/electron-src-overlay:/opt/electron-src-overlay
-        options: --ulimit=host
+        options: --ulimit=host -m 64g
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
