@@ -1,4 +1,60 @@
-FROM registry.access.redhat.com/ubi8/ubi:8.10
+FROM --platform=linux/ppc64le quay.io/almalinuxorg/almalinux:8.10 AS sysroot
+
+RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm && \
+    /usr/bin/crb enable && \
+    dnf install -y  alsa-lib-devel \
+                    atk-devel \
+                    cups-devel \
+                    dbus-devel \
+                    desktop-file-utils \
+                    expat-devel \
+                    fontconfig-devel \
+                    glib2-devel \
+                    glibc-devel \
+                    libatomic \
+                    libcap-devel \
+                    libcurl-devel \
+                    libdrm-devel \
+                    libgcrypt-devel \
+                    libudev-devel \
+                    libuuid-devel \
+                    libusb-devel \
+                    libutempter-devel \
+                    libXdamage-devel \
+                    libXtst-devel \
+                    mesa-libgbm-devel \
+                    nss-devel \
+                    pciutils-devel \
+                    pulseaudio-libs-devel \
+                    libappstream-glib \
+                    bzip2-devel \
+                    dbus-glib-devel \
+                    elfutils-libelf-devel \
+                    kernel-headers \
+                    libffi-devel \
+                    libxshmfence-devel \
+                    mesa-libGL-devel \
+                    "pkgconfig(gtk+-3.0)" \
+                    re2-devel \
+                    speech-dispatcher-devel \
+                    zlib-devel \
+                    pam-devel \
+                    systemd \
+                    libevdev-devel \
+                    libpng-devel \
+                    libnotify-devel \
+                    gcc-toolset-13-libatomic-devel \
+                    opus-devel \
+                    flac-devel \
+                    libsecret-devel \
+                    lcms2-devel \
+                    libxslt-devel \
+                    highway-devel \
+                    libXNVCtrl-devel \
+                    double-conversion-devel \
+                    libevent-devel
+
+FROM quay.io/almalinuxorg/almalinux:8.10
 
 RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm && \
     /usr/bin/crb enable && \
@@ -20,7 +76,17 @@ RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.n
                     binutils-powerpc64le-linux-gnu \
                     git \
                     elfutils \
-                    cpio; \
+                    cpio \
+                    gperf \
+                    opus-devel \
+                    flac-devel \
+                    libsecret-devel \
+                    lcms2-devel \
+                    libxslt-devel \
+                    highway-devel \
+                    libXNVCtrl-devel \
+                    double-conversion-devel \
+                    libevent-devel; \
     pip-3.9 install httplib2 && \
     alternatives --set python /usr/bin/python3.9 && \
     alternatives --set python3 /usr/bin/python3.9 && \
@@ -33,11 +99,6 @@ RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.n
         rm compiler-rt-*.rpm rust-std-static-*.rpm; \
     fi
 
-# Due to the EULA of UBI and my wanting to stick to RHEL as much as possible, I'm using AlmaLinux's PowerTools repo only for some packages (my Frankenstein's monster)
-COPY --from=quay.io/almalinuxorg/almalinux:8.10 /etc/yum.repos.d/almalinux-powertools.repo /etc/yum.repos.d/almalinux-powertools.repo
-COPY --from=quay.io/almalinuxorg/almalinux:8.10 /etc/pki/rpm-gpg/RPM-GPG-KEY-AlmaLinux /etc/pki/rpm-gpg/RPM-GPG-KEY-AlmaLinux
-RUN dnf install -y --enablerepo=powertools gperf
-
 RUN --mount=type=bind,source=patches/fix-depot-tools.patch,dst=/tmp/fix-depot-tools.patch \
     --mount=type=bind,source=patches/fix-gn.patch,dst=/tmp/fix-gn.patch \
     git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git /opt/depot_tools && \
@@ -48,5 +109,15 @@ RUN --mount=type=bind,source=patches/fix-depot-tools.patch,dst=/tmp/fix-depot-to
     patch -p1 -B .fix-gn/ -i /tmp/fix-gn.patch && \
     python3 build/gen.py && \
     ninja -j $(nproc) -C out
+
+COPY --from=sysroot / /sysroot
+
+RUN rm -rf /sysroot/lib /sysroot/lib64 /sysroot/bin /sysroot/sbin && \
+    ln -s /sysroot/usr/lib /sysroot/lib && \
+    ln -s /sysroot/usr/lib64 /sysroot/lib64 && \
+    ln -s /sysroot/usr/bin /sysroot/bin && \
+    ln -s /sysroot/usr/sbin /sysroot/sbin && \
+    ln -s /sysroot/usr/lib64/pkgconfig /sysroot/usr/lib/pkgconfig && \
+    ln -s /lib64/pkgconfig /usr/lib/pkgconfig
 
 ENV PATH="/opt/depot_tools:/opt/gn/out:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
