@@ -20,6 +20,7 @@ jobs:
             docker pull --platform=linux/amd64 ghcr.io/lex-ibm/electron-ppc64le-build-scripts:next
   build:
     runs-on: fedora-latest
+    needs: prepare
     container: 
         image: ghcr.io/lex-ibm/electron-ppc64le-build-scripts:next
         volumes:
