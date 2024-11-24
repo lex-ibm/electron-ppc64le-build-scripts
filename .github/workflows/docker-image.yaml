@@ -6,8 +6,9 @@ on:
   push:
     branches: [ "main", "next" ]
     tags: [ 'image-*' ]
-  pull_request:
-    branches: [ "main", "next" ]
+    paths:
+        - 'Containerfile'
+        - '.github/workflows/docker-image.yaml'
 
 env:
   REGISTRY: ghcr.io
@@ -61,6 +62,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          platforms: linux/ppc64le,linux/arm64,linux/amd64
 
       - name: Sign the published Docker image
         if: ${{ github.event_name != 'pull_request' }}

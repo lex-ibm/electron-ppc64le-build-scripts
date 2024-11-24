@@ -1,92 +1,77 @@
-FROM --platform=linux/ppc64le quay.io/almalinuxorg/almalinux:8.10 AS sysroot
-
-RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm && \
-    /usr/bin/crb enable && \
-    dnf install -y  alsa-lib-devel \
-                    atk-devel \
-                    cups-devel \
-                    dbus-devel \
-                    desktop-file-utils \
-                    expat-devel \
-                    fontconfig-devel \
-                    glib2-devel \
-                    glibc-devel \
-                    libatomic \
-                    libcap-devel \
-                    libcurl-devel \
-                    libdrm-devel \
-                    libgcrypt-devel \
-                    libudev-devel \
-                    libuuid-devel \
-                    libusb-devel \
-                    libutempter-devel \
-                    libXdamage-devel \
-                    libXtst-devel \
-                    mesa-libgbm-devel \
-                    nss-devel \
-                    pciutils-devel \
-                    pulseaudio-libs-devel \
-                    libappstream-glib \
-                    bzip2-devel \
-                    dbus-glib-devel \
-                    elfutils-libelf-devel \
-                    kernel-headers \
-                    libffi-devel \
-                    libxshmfence-devel \
-                    mesa-libGL-devel \
-                    "pkgconfig(gtk+-3.0)" \
-                    re2-devel \
-                    speech-dispatcher-devel \
-                    zlib-devel \
-                    pam-devel \
-                    systemd \
-                    libevdev-devel \
-                    libpng-devel \
-                    libnotify-devel \
-                    gcc-toolset-13-libatomic-devel \
-                    opus-devel \
-                    flac-devel \
-                    libsecret-devel \
-                    lcms2-devel \
-                    libxslt-devel \
-                    highway-devel \
-                    libXNVCtrl-devel \
-                    double-conversion-devel \
-                    libevent-devel
-
 FROM quay.io/almalinuxorg/almalinux:8.10
 
 RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm && \
     /usr/bin/crb enable && \
     dnf module enable -y nodejs:20 && \
-    dnf install -y  clang \
+    dnf install -y  alsa-lib-devel \
+                    atk-devel \
+                    bindgen-cli \
+                    binutils-powerpc64le-linux-gnu \
+                    bzip2-devel \
+                    cpio \
+                    clang \
                     clang-tools-extra \
+                    cups-devel \
+                    dbus-devel \
+                    dbus-glib-devel \
+                    desktop-file-utils \
+                    double-conversion-devel \
+                    elfutils \
+                    elfutils-libelf-devel \
+                    expat-devel \
+                    flac-devel \
+                    fontconfig-devel \
+                    gcc-toolset-13-libatomic-devel \
+                    git \
+                    gperf \
+                    glib2-devel \
+                    glibc-devel \
+                    highway-devel \
+                    java-1.8.0-openjdk-headless \
+                    kernel-headers \
+                    lcms2-devel \
+                    libXNVCtrl-devel \
+                    libXdamage-devel \
+                    libXtst-devel \
+                    libappstream-glib \
+                    libatomic \
+                    libcap-devel \
+                    libcurl-devel \
+                    libdrm-devel \
+                    libevdev-devel \
+                    libffi-devel \
+                    libgcrypt-devel \
+                    libnotify-devel \
+                    libpng-devel \
+                    libsecret-devel \
+                    libudev-devel \
+                    libusb-devel \
+                    libutempter-devel \
+                    libuuid-devel \
+                    libxshmfence-devel \
+                    libxslt-devel \
                     llvm \
                     lld \
-                    rustc \
-                    bindgen-cli \
-                    /usr/bin/python3.9 \
-                    /usr/bin/pip-3.9 \
+                    mesa-libGL-devel \
+                    mesa-libgbm-devel \
                     ninja-build \
-                    java-1.8.0-openjdk-headless \
-                    xz \
-                    patch \
                     nodejs \
-                    yarnpkg \
-                    binutils-powerpc64le-linux-gnu \
-                    git \
-                    elfutils \
-                    cpio \
-                    gperf \
+                    nss-devel \
                     opus-devel \
-                    flac-devel \
-                    libsecret-devel \
-                    lcms2-devel \
-                    libxslt-devel \
-                    highway-devel \
-                    libXNVCtrl-devel \
-                    double-conversion-devel \
-                    libevent-devel; \
+                    pam-devel \
+                    patch \
+                    pciutils-devel \
+                    /usr/bin/pip-3.9 \
+                    /usr/bin/python3.9 \
+                    pulseaudio-libs-devel \
+                    re2-devel \
+                    rustc \
+                    speech-dispatcher-devel \
+                    systemd \
+                    xz \
+                    yarnpkg \
+                    zlib-devel \
+                    ; \
     pip-3.9 install httplib2 && \
     alternatives --set python /usr/bin/python3.9 && \
     alternatives --set python3 /usr/bin/python3.9 && \
@@ -110,14 +95,6 @@ RUN --mount=type=bind,source=patches/fix-depot-tools.patch,dst=/tmp/fix-depot-to
     python3 build/gen.py && \
     ninja -j $(nproc) -C out
 
-COPY --from=sysroot / /sysroot
-
-RUN rm -rf /sysroot/lib /sysroot/lib64 /sysroot/bin /sysroot/sbin && \
-    ln -s /sysroot/usr/lib /sysroot/lib && \
-    ln -s /sysroot/usr/lib64 /sysroot/lib64 && \
-    ln -s /sysroot/usr/bin /sysroot/bin && \
-    ln -s /sysroot/usr/sbin /sysroot/sbin && \
-    ln -s /sysroot/usr/lib64/pkgconfig /sysroot/usr/lib/pkgconfig && \
-    ln -s /lib64/pkgconfig /usr/lib/pkgconfig
+RUN ln -s /lib64/pkgconfig /usr/lib/pkgconfig
 
 ENV PATH="/opt/depot_tools:/opt/gn/out:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"

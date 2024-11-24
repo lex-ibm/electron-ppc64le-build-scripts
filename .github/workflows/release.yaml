@@ -4,6 +4,10 @@ on:
   push:
     branches: [ "main", "next" ]
     tags: [ '*' ]
+    paths:
+      - 'build-electron.sh'
+      - 'patches/**'
+      - '.github/workflows/release.yaml'
 
 jobs:
   build:
