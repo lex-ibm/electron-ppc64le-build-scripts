@@ -12,7 +12,8 @@ jobs:
         image: ghcr.io/lex-ibm/electron-ppc64le-build-scripts:next
         volumes:
             - /opt/electron-git-cache:/opt/electron-git-cache
-        options: -v /opt/electron-src-overlay:/opt/electron-src-overlay:O
+            - /opt/electron-src-overlay:/opt/electron-src-overlay
+        options: --ulimit=host
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
