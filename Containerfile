@@ -95,6 +95,8 @@ RUN --mount=type=bind,source=patches/fix-depot-tools.patch,dst=/tmp/fix-depot-to
     python3 build/gen.py && \
     ninja -j $(nproc) -C out
 
-RUN ln -s /lib64/pkgconfig /usr/lib/pkgconfig
+RUN ln -s /lib64/pkgconfig /usr/lib/pkgconfig && \
+    dnf makecache --forcearch=$(uname -m) && \
+    dnf install -y libxkbcommon-devel
 
 ENV PATH="/opt/depot_tools:/opt/gn/out:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
