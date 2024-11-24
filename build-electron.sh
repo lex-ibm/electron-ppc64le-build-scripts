@@ -102,56 +102,57 @@ export GIT_CACHE_PATH="${GIT_CACHE_PATH:-${CWD}/.git_cache}"
 if [ ! -d "${GIT_CACHE_PATH}" ]; then
   mkdir -p "${GIT_CACHE_PATH}"
 fi
-if [ -z "$(ls -A "${CWD}"/electron/src)" ]; then
-  # Checkout source
-  if [ -d /opt/electron-src-overlay ]; then
-    ln -s /opt/electron-src-overlay electron
-  else
-    mkdir -p electron
-  fi
-  cd electron
-  gclient config --name src/electron --unmanaged "https://github.com/electron/electron@${ELECTRON_VERSION}"
-  gclient sync --with_branch_heads --with_tags -vv
-  cd src
 
-  # Fix sysroot symlinks
-  rm -rf build/linux/debian_bullseye_*
-  ln -s / build/linux/debian_bullseye_amd64-sysroot
-  ln -s /sysroot build/linux/debian_bullseye_ppc64le-sysroot
-
-  # Timothy Pearson's patchset
-  # https://gitlab.solidsilicon.io/public-development/open-source/chromium/openpower-patches/-/tree/chromium-128/patches/ppc64le
-  # Note(lex-ibm): We could automate getting the patches from the above URL, but after some discussions we decided it is better
-  # to have the patches in the same repository for better control/visibility.
-  while IFS= read -r patch; do
-    if [[ $patch =~ ^ppc64le ]]; then
-      git apply "${CWD}/patches/${patch}"
-    fi
-  done <"${CWD}"/patches/series
-
-  # EPEL8 Chromium patches
-  # https://src.fedoraproject.org/rpms/chromium
-  git apply "${CWD}"/patches/fedora/chromium-118-dma_buf_export_sync_file-conflict.patch
-  git apply "${CWD}"/patches/fedora/chromium-127-rust-clanglib.patch
-
-  # Electron PowerPC64 Little Endian support
-  git apply "${CWD}"/patches/electron-32-001-fix-runtime-api-delegate.patch
-  git apply "${CWD}"/patches/electron-32-002-fix-ppc64-syscalls-headers.patch
-  git apply "${CWD}"/patches/electron-32-003-enable-ppc64le-cross-compile.patch
-
-  # Use RHEL's libpng
-  
-  if [ "$bundlelibusbx" == false ]; then
-    rm -rf third_party/libusb/src/libusb/libusb.h
-    cp -a /sysroot/usr/include/libusb-1.0/libusb.h third_party/libusb/src/libusb/libusb.h
-  fi
-
-  if [ "$bundledav1d" == false ]; then
-    cp -a third_party/dav1d/version/version.h third_party/dav1d/libdav1d/include/dav1d/
-  fi
-
-  cd ../../
+# Checkout source
+if [ -d /opt/electron-src-overlay ]; then
+  ln -s /opt/electron-src-overlay electron
+else
+  mkdir -p electron
 fi
+cd electron
+
+# Fetch Electron source
+gclient config --name src/electron --unmanaged "https://github.com/electron/electron@${ELECTRON_VERSION}"
+gclient sync --with_branch_heads --with_tags -vv
+cd src
+
+# Fix sysroot symlinks
+rm -rf build/linux/debian_bullseye_*
+ln -s / build/linux/debian_bullseye_amd64-sysroot
+ln -s /sysroot build/linux/debian_bullseye_ppc64el-sysroot
+
+# Timothy Pearson's patchset
+# https://gitlab.solidsilicon.io/public-development/open-source/chromium/openpower-patches/-/tree/chromium-128/patches/ppc64le
+# Note(lex-ibm): We could automate getting the patches from the above URL, but after some discussions we decided it is better
+# to have the patches in the same repository for better control/visibility.
+while IFS= read -r patch; do
+  if [[ $patch =~ ^ppc64le ]]; then
+    git apply "${CWD}/patches/${patch}"
+  fi
+done <"${CWD}"/patches/series
+
+# EPEL8 Chromium patches
+# https://src.fedoraproject.org/rpms/chromium
+git apply "${CWD}"/patches/fedora/chromium-118-dma_buf_export_sync_file-conflict.patch
+git apply "${CWD}"/patches/fedora/chromium-127-rust-clanglib.patch
+
+# Electron PowerPC64 Little Endian support
+git apply "${CWD}"/patches/electron-32-001-fix-runtime-api-delegate.patch
+git apply "${CWD}"/patches/electron-32-002-fix-ppc64-syscalls-headers.patch
+git apply "${CWD}"/patches/electron-32-003-enable-ppc64le-cross-compile.patch
+
+# Use RHEL's libpng
+
+if [ "$bundlelibusbx" == false ]; then
+  rm -rf third_party/libusb/src/libusb/libusb.h
+  cp -a /sysroot/usr/include/libusb-1.0/libusb.h third_party/libusb/src/libusb/libusb.h
+fi
+
+if [ "$bundledav1d" == false ]; then
+  cp -a third_party/dav1d/version/version.h third_party/dav1d/libdav1d/include/dav1d/
+fi
+
+cd ../../
 
 # Build
 CXXFLAGS+=' -faltivec-src-compat=mixed -Wno-deprecated-altivec-src-compat'
