@@ -10,6 +10,14 @@ on:
       - '.github/workflows/release.yaml'
 
 jobs:
+  prepare:
+    runs-on: fedora-latest
+    steps:
+      - name: Fetch Build Image
+        run: |
+            docker pull --platform=linux/ppc64le ghcr.io/lex-ibm/electron-ppc64le-build-scripts:next && \
+            docker tag ghcr.io/lex-ibm/electron-ppc64le-build-scripts:next ppc64le/electron-ppc64le-build-scripts:latest && \
+            docker pull --platform=linux/amd64 ghcr.io/lex-ibm/electron-ppc64le-build-scripts:next
   build:
     runs-on: fedora-latest
     container: 
@@ -17,7 +25,7 @@ jobs:
         volumes:
             - /opt/electron-git-cache:/opt/electron-git-cache
             - /opt/electron-src-overlay:/opt/electron-src-overlay
-        options: --ulimit=host -m 64g
+        options: --ulimit=host -m 64g --mount=type=image,source=ppc64le/electron-ppc64le-build-scripts:latest,destination=/sysroot,rw=true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
