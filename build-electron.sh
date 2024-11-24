@@ -97,9 +97,11 @@ bundleminizip=true
 # Prepare for build
 export DEPOT_TOOLS_UPDATE=0
 export VPYTHON_BYPASS="manually managed python not supported by chrome operations"
-export GIT_CACHE_PATH="${CWD}"/.git_cache
+export GIT_CACHE_PATH="${GIT_CACHE_PATH:-${CWD}/.git_cache}"
 
-mkdir -p "${GIT_CACHE_PATH}"
+if [ ! -d "${GIT_CACHE_PATH}" ]; then
+  mkdir -p "${GIT_CACHE_PATH}"
+fi
 if [ -z "$(ls -A "${CWD}"/electron/src)" ]; then
   # Checkout source
   mkdir -p electron && cd electron

@@ -1,4 +1,4 @@
-name: Docker
+name: Build
 
 on:
   push:
@@ -10,9 +10,12 @@ jobs:
     runs-on: fedora-latest
     container: 
       image: ghcr.io/lex-ibm/electron-ppc64le-build-scripts:next
+      options: --mount type=bind,source=/opt/electron-git-cache,target=/opt/electron-git-cache
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Run Build Script
+        env:
+          GIT_CACHE_PATH: /opt/electron-git-cache/
         run: ./build-electron.sh
