@@ -10,7 +10,9 @@ jobs:
     runs-on: fedora-latest
     container: 
       image: ghcr.io/lex-ibm/electron-ppc64le-build-scripts:next
-      options: --mount type=bind,source=/opt/electron-git-cache,target=/opt/electron-git-cache
+      volumes:
+        - /opt/electron-git-cache:/opt/electron-git-cache
+        - /opt/electron-src-overlay:/opt/electron-src-overlay:O
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

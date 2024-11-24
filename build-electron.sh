@@ -104,7 +104,12 @@ if [ ! -d "${GIT_CACHE_PATH}" ]; then
 fi
 if [ -z "$(ls -A "${CWD}"/electron/src)" ]; then
   # Checkout source
-  mkdir -p electron && cd electron
+  if [ -d /opt/electron-src-overlay ]; then
+    ln -s /opt/electron-src-overlay electron
+  else
+    mkdir -p electron
+  fi
+  cd electron
   gclient config --name src/electron --unmanaged "https://github.com/electron/electron@${ELECTRON_VERSION}"
   gclient sync --with_branch_heads --with_tags -vv
   cd src
