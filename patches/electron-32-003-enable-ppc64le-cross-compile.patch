@@ -176,3 +176,18 @@ index 81648e3b2a810..4252f0d8acb7a 100644
    }
 
    configs -= [ "//build/config/compiler:chromium_code" ]
+
+diff --git a/build/config/linux/pkg-config.py b/build/config/linux/pkg-config.py
+index 4f67c16192f76..61f4d7317c53c 100755
+--- a/build/config/linux/pkg-config.py
++++ b/build/config/linux/pkg-config.py
+@@ -59,7 +59,7 @@ def SetConfigPath(options):
+     sys.exit(1)
+ 
+   libdir = sysroot + '/usr/' + options.system_libdir + '/pkgconfig'
+-  libdir += ':' + sysroot + '/usr/share/pkgconfig'
++  libdir += '/:' + sysroot + '/usr/share/pkgconfig'
+   os.environ['PKG_CONFIG_LIBDIR'] = libdir
+   return libdir
+ 
+ 

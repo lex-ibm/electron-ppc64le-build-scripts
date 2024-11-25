@@ -106,7 +106,7 @@ fi
 # Checkout source
 if [ -d /opt/electron-src-overlay ]; then
   ln -s /opt/electron-src-overlay electron
-else
+elif [ ! -d electron ]; then
   mkdir -p electron
 fi
 cd electron
@@ -119,13 +119,15 @@ cd src
 # Fix sysroot symlinks
 rm -rf build/linux/debian_bullseye_*
 ln -s / build/linux/debian_bullseye_amd64-sysroot
+ln -s / build/linux/debian_bullseye_arm64-sysroot
 ln -s /sysroot build/linux/debian_bullseye_ppc64el-sysroot
-rm -rf /sysroot/lib /sysroot/lib64 /sysroot/bin /sysroot/sbin
-ln -s /sysroot/usr/lib /sysroot/lib
-ln -s /sysroot/usr/lib64 /sysroot/lib64
-ln -s /sysroot/usr/bin /sysroot/bin
-ln -s /sysroot/usr/sbin /sysroot/sbin
-ln -s /sysroot/usr/lib64/pkgconfig /sysroot/usr/lib/pkgconfig
+
+if [ ! -d /usr/lib/clang/18/lib/ppc64le-redhat-linux-gnu/ ]; then
+  ln -s /sysroot/usr/lib/clang/18/lib/ppc64le-redhat-linux-gnu /usr/lib/clang/18/lib/ppc64le-redhat-linux-gnu
+fi
+if [ ! -d /usr/lib/rustlib/powerpc64le-unknown-linux-gnu/ ]; then
+  ln -s /sysroot/usr/lib/rustlib/powerpc64le-unknown-linux-gnu /usr/lib/rustlib/powerpc64le-unknown-linux-gnu
+fi
 
 # Timothy Pearson's patchset
 # https://gitlab.solidsilicon.io/public-development/open-source/chromium/openpower-patches/-/tree/chromium-128/patches/ppc64le
