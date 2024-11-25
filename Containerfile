@@ -96,4 +96,11 @@ RUN --mount=type=bind,source=patches/fix-depot-tools.patch,dst=/tmp/fix-depot-to
     python3 build/gen.py && \
     ninja -j $(nproc) -C out
 
+RUN cd / && \
+    ln -sf ./usr/bin && \
+    ln -sf ./usr/sbin && \
+    ln -sf ./usr/lib && \
+    ln -sf ./usr/lib64 && \
+    ln -sf ../../lib64/pkgconfig /usr/lib/pkgconfig
+
 ENV PATH="/opt/depot_tools:/opt/gn/out:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
