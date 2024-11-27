@@ -18,6 +18,7 @@
 #
 # ----------------------------------------------------------------------------
 
+# shellcheck disable=SC2034
 PACKAGE_NAME="electron"
 PACKAGE_VERSION=${1:-"v32.2.5"}
 PACKAGE_URL="https://github.com/electron/electron"
@@ -31,10 +32,11 @@ export AR=llvm-ar
 export NM=llvm-nm
 export READELF=llvm-readelf
 
-build_dir="${BUILD_DIRECTORY:-"$PWD/build"}"
-patches_dir="$PWD/patches"
+build_dir="${BUILD_DIRECTORY:-"${PWD}/build"}"
+patches_dir="${PWD}/patches"
 electron_src="${build_dir}/src"
-electron_out="${electron_src}/out/Release"
+electron_out="${electron_src}/out/Default"
+assets_dir="${PWD}/assets"
 
 CXXFLAGS+=' -faltivec-src-compat=mixed -Wno-deprecated-altivec-src-compat'
 export CXXFLAGS
@@ -77,7 +79,7 @@ fi
 
 ELECTRON_GN_DEFINES+=' treat_warnings_as_errors=false'
 ELECTRON_GN_DEFINES+=' use_gnome_keyring=false'
-ELECTRON_GN_DEFINES+=' use_system_libffi=true'
+# ELECTRON_GN_DEFINES+=' use_system_libffi=true' # Containerfile has libffi_pic.a 3.4.4
 
 # Create git cache directory if not already present
 if [ ! -d "${GIT_CACHE_PATH}" ]; then
@@ -143,22 +145,118 @@ chmod +x third_party/node/linux/node-linux-x64/bin/node
 rm -rf buildtools/third_party/eu-strip/bin/eu-strip
 cp "$(command -v eu-strip)" buildtools/third_party/eu-strip/bin/eu-strip
 
-if [ ! -f "${electron_out}/electron" ]; then
-  gn gen "${electron_out}" --args="import(\"//electron/build/args/release.gn\") ${ELECTRON_GN_DEFINES}"
-  ninja -j "$(nproc)" -C "${electron_out}" electron
-  electron/script/strip-binaries.py --target-cpu ppc64 -d "${electron_out}"
-  ninja -C "${electron_out}" electron:electron_dist_zip
-fi
+gn gen "${electron_out}" --args="import(\"//electron/build/args/release.gn\") ${ELECTRON_GN_DEFINES}"
 
-if [ -f "${electron_out}/dist.zip" ]; then
-  mv "${electron_out}/dist.zip" "${electron_out}/${PACKAGE_NAME}-${PACKAGE_VERSION}-linux-ppc64le.zip"
-fi
+# Build Electron
+ninja -j "$(nproc)" -C "${electron_out}" electron
 
-if [ -f "${electron_out}/${PACKAGE_NAME}-${PACKAGE_VERSION}-linux-ppc64le.zip" ]; then
-  shasum256_zip=$(sha256sum "${electron_out}/${PACKAGE_NAME}-${PACKAGE_VERSION}-linux-ppc64le.zip")
-  if [ ! -f "${electron_out}/SHASUM256.txt" ]; then
-    curl -sL "https://github.com/electron/electron/releases/download/${PACKAGE_VERSION}/SHASUMS256.txt" > "${electron_out}/SHASUM256.txt"
-    printf '\n%s' "$shasum256_zip" >> "${electron_out}/SHASUM256.txt"
+#Strip Electron Binaries
+electron/script/copy-debug-symbols.py --target-cpu="ppc64" --out-dir="${electron_out}/debug" --compress
+electron/script/strip-binaries.py --target-cpu="ppc64" --verbose
+electron/script/add-debug-link.py --target-cpu="ppc64" --debug-dir="${electron_out}/debug"
+
+# Build Electron dist.zip
+ninja -j "$(nproc)" -C "${electron_out}" electron:electron_dist_zip
+electron/script/zip_manifests/check-zip-manifest.py "${electron_out}/dist.zip" electron/script/zip_manifests/dist_zip.linux.arm64.manifest # This works, so ¯\_(ツ)_/¯
+
+# Build Mksnapshot
+ninja -j "$(nproc)" -C "${electron_out}" electron:electron_mksnapshot
+gn desc "${electron_out}" v8:run_mksnapshot_default args > "${electron_out}/mksnapshot_args"
+sed -i '/.*builtins-pgo/d' "${electron_out}/mksnapshot_args"
+sed -i '/--turbo-profiling-input/d' "${electron_out}/mksnapshot_args"
+if [ "$(arch)" == "x86_64" ]; then
+  electron/script/strip-binaries.py --file "${electron_out}/clang_x64_v8_ppc64/mksnapshot"
+  electron/script/strip-binaries.py --file "${electron_out}/clang_x64_v8_ppc64/v8_context_snapshot_generator"
+elif [ "$(arch)" == "aarch64" ]; then
+  electron/script/strip-binaries.py --file "${electron_out}/clang_arm64_v8_ppc64/mksnapshot"
+  electron/script/strip-binaries.py --file "${electron_out}/clang_arm64_v8_ppc64/v8_context_snapshot_generator"
+else
+  electron/script/strip-binaries.py --file "${electron_out}/mksnapshot"
+  electron/script/strip-binaries.py --file "${electron_out}/v8_context_snapshot_generator"
+fi
+ninja -j "$(nproc)" -C "${electron_out}" electron:electron_mksnapshot_zip
+cd "${electron_out}"
+zip mksnapshot.zip mksnapshot_args gen/v8/embedded.S
+
+# Generate Cross-Arch Snapshot
+if [ "$(arch)" != "ppc64le" ]; then
+  if [ "$(arch)" = "aarch64" ]; then
+    MKSNAPSHOT_PATH="clang_arm64_v8_ppc64"
+  elif [ "$(arch)" = "x86_64" ]; then
+    MKSNAPSHOT_PATH="clang_x64_v8_ppc64"
   fi
-  echo "$shasum256_zip"
+
+  cp "out/Default/$MKSNAPSHOT_PATH/mksnapshot" "${electron_out}"
+  cp "out/Default/$MKSNAPSHOT_PATH/v8_context_snapshot_generator" "${electron_out}"
+  cp "out/Default/$MKSNAPSHOT_PATH/libffmpeg.so" "${electron_out}"
+
+  python3 electron/script/verify-mksnapshot.py --source-root "${electron_src}" --build-dir "${electron_out}" --create-snapshot-only
+  mkdir cross-arch-snapshots
+  cp "${electron_out}-mksnapshot-test"/*.bin cross-arch-snapshots
+  # Clean up so that ninja does not get confused
+  rm -f "${electron_out}"/libffmpeg.so
 fi
+
+cd "${electron_src}"
+
+# Build Chromedriver
+ninja -j "$(nproc)" -C "${electron_out}" electron:electron_chromedriver
+ninja -C "${electron_out}" electron:electron_chromedriver_zip
+
+# Build Node.js headers
+ninja -j "$(nproc)" -C "${electron_out}" electron:node_headers
+
+# Generate & Zip Symbols
+ninja -j "$(nproc)" -C "${electron_out}" electron:electron_symbols
+ninja -j "$(nproc)" -C "${electron_out}" electron:licenses
+ninja -j "$(nproc)" -C "${electron_out}" electron:electron_version_file
+DELETE_DSYMS_AFTER_ZIP=1 electron/script/zip-symbols.py -b "${electron_out}"
+
+# Generate FFMpeg
+gn gen "${electron_out}/../ffmpeg" --args="import(\"//electron/build/args/ffmpeg.gn\") ${ELECTRON_GN_DEFINES}"
+ninja -j "$(nproc)" -C "${electron_out}/../ffmpeg" electron:electron_ffmpeg_zip
+
+# Generate Hunspell Dictionaries
+ninja -j "$(nproc)" -C "${electron_out}" electron:hunspell_dictionaries_zip
+
+# Generate Libcxx
+ninja -j "$(nproc)" -C "${electron_out}" electron:libcxx_headers_zip
+ninja -j "$(nproc)" -C "${electron_out}" electron:libcxxabi_headers_zip
+ninja -j "$(nproc)" -C "${electron_out}" electron:libcxx_objects_zip
+
+# Generate TypeScript Definitions
+cd "${electron_src}"/electron
+node script/yarn create-typescript-definitions
+
+# Move files to assets directory
+if [ ! -d "${assets_dir}" ]; then
+  mkdir -p "${assets_dir}"
+fi
+cd "${electron_out}"
+
+cp chromedriver.zip "${assets_dir}/chromedriver-${PACKAGE_VERSION}-linux-ppc64le.zip"
+cp debug.zip "${assets_dir}/electron-${PACKAGE_VERSION}-linux-ppc64le-debug.zip"
+cp symbols.zip "${assets_dir}/electron-${PACKAGE_VERSION}-linux-ppc64le-symbols.zip"
+cp dist.zip "${assets_dir}/electron-${PACKAGE_VERSION}-linux-ppc64le.zip"
+cp ./gen/electron/tsc/typings/electron.d.ts "${assets_dir}/electron.d.ts"
+cp ../ffmpeg/ffmpeg.zip "${assets_dir}/ffmpeg-${PACKAGE_VERSION}-linux-ppc64le.zip"
+cp hunspell_dictionaries.zip "${assets_dir}/hunspell_dictionaries.zip"
+cp libcxx_objects.zip "${assets_dir}/libcxx-objects-${PACKAGE_VERSION}-linux-ppc64le.zip"
+cp libcxx_headers.zip "${assets_dir}/libcxx_headers.zip"
+cp libcxxabi_headers.zip "${assets_dir}/libcxxabi_headers.zip"
+cp mksnapshot.zip "${assets_dir}/mksnapshot-${PACKAGE_VERSION}-linux-ppc64le.zip"
+
+# Generate SHASUMS256.txt
+cd "${assets_dir}"
+# shellcheck disable=SC2035
+sha256sum * | sed 's/  / */' | tee SHASUMS256.txt
+
+# Generate SHASUMS256.txt patch
+curl -sL "https://github.com/electron/electron/releases/download/${PACKAGE_VERSION}/SHASUMS256.txt" > SHASUMS256.txt.orig
+echo "" >> SHASUMS256.txt.orig
+grep -v -e "hunspell_dictionaries.zip" -e "libcxxabi_headers.zip" -e "libcxx_headers.zip" -e "electron.d.ts" SHASUMS256.txt > SHASUMS256.txt.tmp
+cat SHASUMS256.txt.tmp SHASUMS256.txt.orig | sort -k2 > SHASUMS256.txt.pp64le
+diff -u SHASUMS256.txt.orig SHASUMS256.txt.pp64le > "${assets_dir}/SHASUMS256.txt.patch"
+rm -f SHASUMS256.txt.orig SHASUMS256.txt.tmp SHASUMS256.txt.pp64le
+
+echo "Build completed successfully!"
