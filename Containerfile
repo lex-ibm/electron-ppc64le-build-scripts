@@ -1,7 +1,9 @@
-FROM quay.io/almalinuxorg/almalinux:8.10 as libffi-builder
+# FROM quay.io/almalinuxorg/almalinux:8.10 as libffi-builder
+FROM registry.access.redhat.com/ubi8/ubi:8.10 as libffi-builder
 
 RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm && \
     /usr/bin/crb enable && \
+    dnf config-manager --enable "codeready-builder-for-rhel-8-$(arch)-rpms" && \
     dnf install -y autoconf2.7x automake git make gcc-c++ libtool texinfo && \
     rm /usr/bin/autoconf && \
     rm /usr/bin/autoreconf && \
@@ -16,10 +18,12 @@ RUN git clone --depth 1 --branch v3.4.4 https://github.com/libffi/libffi.git /op
     cp ./*/.libs/libffi_convenience.a /usr/lib64/libffi_pic.a && \
     rm -rf /opt/libffi-tmp
 
-FROM quay.io/almalinuxorg/almalinux:8.10
+# FROM quay.io/almalinuxorg/almalinux:8.10
+FROM registry.access.redhat.com/ubi8/ubi:8.10
 
 RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm && \
     /usr/bin/crb enable && \
+    dnf config-manager --enable "codeready-builder-for-rhel-8-$(arch)-rpms" && \
     dnf module enable -y nodejs:20 && \
     dnf install -y  clang \
                     clang-tools-extra \
@@ -110,12 +114,11 @@ RUN --mount=type=bind,source=patches/fix-depot-tools.patch,dst=/tmp/fix-depot-to
     patch -p1 -i /tmp/fix-depot-tools.patch
 
 RUN --mount=type=bind,source=patches/fix-gn.patch,dst=/tmp/fix-gn.patch \
-    git clone https://gn.googlesource.com/gn /usr/src/gn && \
-    cd /usr/src/gn && \
+    git clone https://gn.googlesource.com/gn /opt/gn && \
+    cd /opt/gn && \
     patch -p1 -i /tmp/fix-gn.patch && \
     python3 build/gen.py && \
-    ninja -j $(nproc) -C out && \
-    mv out /opt/gn
+    ninja -j $(nproc) -C out
 
 COPY --from=libffi-builder /usr/lib64/libffi_pic.a /usr/lib64/libffi_pic.a
 
