@@ -1,5 +1,6 @@
 # POWER support
 ppc64le/core/add-ppc64-architecture-string.patch
+ppc64le/core/add-ppc64-pthread-stack-size.patch
 
 ppc64le/sandbox/0001-linux-seccomp-bpf-ppc64-glibc-workaround-in-SIGSYS-h.patch
 ppc64le/sandbox/0001-sandbox-Enable-seccomp_bpf-for-ppc64.patch
@@ -63,10 +64,10 @@ ppc64le/v8/0002-Add-ppc64-trap-instructions.patch
 ppc64le/sandbox/fix-ppc64-linux-syscalls-headers.patch
 ppc64le/third_party/use-sysconf-page-size-on-ppc64.patch
 
-ppc64le/third_party/dawn-fix-typos.patch
 ppc64le/third_party/dawn-fix-ppc64le-detection.patch
 
 ppc64le/core/add-ppc64-architecture-to-extensions.diff
+ppc64le/core/cargo-add-ppc64.diff
 
 # Suppress harmless compiler warning messages that appear on ppc64 due to arch-specific warning flags being passed
 ppc64le/fixes/fix-unknown-warning-option-messages.diff
@@ -74,6 +75,9 @@ ppc64le/fixes/fix-unknown-warning-option-messages.diff
 # These patches enable full POWER ISA 3.0 (POWER9) acceleration when applied
 # They will not work on POWER8 (ISA 2.07) or below
 #ppc64le/core/baseline-isa-3-0.patch
+
+# Upstream fixes needed for POWER builds
+upstream/blink-fix-size-assertions.patch
 
 # Ungoogled Chromium
 

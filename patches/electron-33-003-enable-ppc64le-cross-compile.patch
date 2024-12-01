@@ -1,8 +1,8 @@
 diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
-index bb8cb1eda5ae0..55428b7283e15 100644
+index 1af3d0e179f1c..c682c04bb0589 100644
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
-@@ -1456,6 +1456,10 @@ config("compiler_cpu_abi") {
+@@ -1476,6 +1476,10 @@ config("compiler_cpu_abi") {
        } else {
          cflags += [ "-m64" ]
          ldflags += [ "-m64" ]
@@ -13,6 +13,19 @@ index bb8cb1eda5ae0..55428b7283e15 100644
        }
      } else if (current_cpu == "riscv64") {
        if (is_clang && !is_android) {
+@@ -1976,10 +1980,10 @@ config("default_warnings") {
+         ]
+ 
+         # TODO(crbug.com/344680447): Fix and re-enable.
+-        cflags_cc += [ "-Wno-missing-template-arg-list-after-template-kw" ]
++        # cflags_cc += [ "-Wno-missing-template-arg-list-after-template-kw" ]
+ 
+         # TODO(crbug.com/356172342): Fix and re-enable.
+-        cflags_cc += [ "-Wno-dangling-assignment-gsl" ]
++        # cflags_cc += [ "-Wno-dangling-assignment-gsl" ]
+       }
+     }
+ 
 diff --git a/build/config/sysroot.gni b/build/config/sysroot.gni
 index 47fe4cbc840dd..3825cd75f17f0 100644
 --- a/build/config/sysroot.gni
@@ -60,50 +73,27 @@ index 00e866896f9a7..25366ef0da364 100644
  # toolchain to build Ash-Chrome in a subdirectory.
  # This is a test-only toolchain.
 diff --git a/chrome/installer/linux/BUILD.gn b/chrome/installer/linux/BUILD.gn
-index 51f7c978a0b32..26ea8dab2a4c5 100644
+index ce94b6fb4aa55..2268c5820c85c 100644
 --- a/chrome/installer/linux/BUILD.gn
 +++ b/chrome/installer/linux/BUILD.gn
-@@ -453,6 +453,8 @@ template("linux_package") {
-       deb_arch = "mips64el"
-     } else if (current_cpu == "loong64") {
+@@ -455,6 +455,8 @@ template("linux_package") {
        deb_arch = "loong64"
+     } else if (current_cpu == "riscv64") {
+       deb_arch = "riscv64"
 +    } else if (current_cpu == "ppc64") {
 +      deb_arch = "ppc64el"
      } else {
        assert(false, "Linux installer not configured for this architecture.")
      }
-@@ -504,6 +506,8 @@ template("linux_package") {
-         rpm_arch = "mips64el"
-       } else if (current_cpu == "loong64") {
+@@ -508,6 +510,8 @@ template("linux_package") {
          rpm_arch = "loongarch64"
+       } else if (current_cpu == "riscv64") {
+         rpm_arch = "riscv64"
 +      } else if (current_cpu == "ppc64") {
 +        rpm_arch = "ppc64le"
        } else {
          assert(false, "Linux installer not configured for this architecture.")
        }
-
-diff --git a/v8/BUILD.gn b/v8/BUILD.gn
-index 01f34e14198..24b5b0afb74 100644
---- a/v8/BUILD.gn
-+++ b/v8/BUILD.gn
-@@ -1415,7 +1415,7 @@ config("toolchain") {
-       defines += [ "V8_TARGET_ARCH_PPC64" ]
-       cflags += [ "-ffp-contract=off" ]
-     }
--    if (host_byteorder == "little") {
-+    if (host_byteorder == "little" && current_cpu == "ppc64") {
-       defines += [ "V8_TARGET_ARCH_PPC_LE" ]
-         cflags += [
-         # Enable usage of AltiVec, VSX, and other POWER8 and higher features
-@@ -1423,7 +1423,7 @@ config("toolchain") {
-         "-maltivec",
-         "-mvsx",
-       ]
--    } else if (host_byteorder == "big") {
-+    } else if (host_byteorder == "big" && current_cpu == "ppc64") {
-       defines += [ "V8_TARGET_ARCH_PPC_BE" ]
-       if (current_os == "aix") {
-         cflags += [
 diff --git a/v8/gni/snapshot_toolchain.gni b/v8/gni/snapshot_toolchain.gni
 index c7faa8ca589..8c3d2dcedab 100644
 --- a/v8/gni/snapshot_toolchain.gni
@@ -162,21 +152,20 @@ index b56590857c..ef421da44d 100644
          # set _cpus to blank for Windows ARM64 so host_toolchain could be
          # selected as snapshot toolchain later.
 diff --git a/third_party/libpng/BUILD.gn b/third_party/libpng/BUILD.gn
-index 81648e3b2a810..4252f0d8acb7a 100644
+index 3116ea0e77e8d..145eacd2e2d39 100644
 --- a/third_party/libpng/BUILD.gn
 +++ b/third_party/libpng/BUILD.gn
-@@ -91,6 +91,10 @@ source_set("libpng_sources") {
-       "mips/filter_msa_intrinsics.c",
-       "mips/mips_init.c",
+@@ -97,6 +97,10 @@ source_set("libpng_sources") {
+       "loongarch/filter_lsx_intrinsics.c",
+       "loongarch/loongarch_lsx_init.c",
      ]
 +  } else if (current_cpu == "ppc64") {
 +    cflags += [
 +      "-DPNG_POWERPC_VSX_OPT=0",
 +    ]
    }
-
+ 
    configs -= [ "//build/config/compiler:chromium_code" ]
-
 diff --git a/build/config/linux/pkg-config.py b/build/config/linux/pkg-config.py
 index 4f67c16192f76..61f4d7317c53c 100755
 --- a/build/config/linux/pkg-config.py
@@ -189,18 +178,4 @@ index 4f67c16192f76..61f4d7317c53c 100755
 +  libdir += '/:' + sysroot + '/usr/share/pkgconfig'
    os.environ['PKG_CONFIG_LIBDIR'] = libdir
    return libdir
- 
-diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
-index 5898b8c54bef2..e61ed5eebba25 100644
---- a/build/config/compiler/BUILD.gn
-+++ b/build/config/compiler/BUILD.gn
-@@ -1955,7 +1955,7 @@ config("default_warnings") {
-         ]
- 
-         # TODO(crbug.com/344680447): Fix and re-enable.
--        cflags_cc += [ "-Wno-missing-template-arg-list-after-template-kw" ]
-+        # cflags_cc += [ "-Wno-missing-template-arg-list-after-template-kw" ]
-       }
-     }
- 
  

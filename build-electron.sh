@@ -2,7 +2,7 @@
 # -----------------------------------------------------------------------------
 #
 # Package         : Electron
-# Version         : 32.2.6
+# Version         : 33.2.1
 # Source repo     : https://github.com/electron/electron
 # Tested on       : RHEL 8.10
 # Language        : C++
@@ -20,7 +20,7 @@
 
 # shellcheck disable=SC2034
 PACKAGE_NAME="electron"
-PACKAGE_VERSION=${1:-"v32.2.6"}
+PACKAGE_VERSION=${1:-"v33.2.1"}
 PACKAGE_URL="https://github.com/electron/electron"
 
 set -eux
@@ -134,7 +134,7 @@ git apply "${patches_dir}"/fedora/chromium-127-rust-clanglib.patch
 # Electron PowerPC64 Little Endian support
 git apply "${patches_dir}"/electron-32-001-fix-runtime-api-delegate.patch
 git apply "${patches_dir}"/electron-32-002-fix-ppc64-syscalls-headers.patch
-git apply "${patches_dir}"/electron-32-003-enable-ppc64le-cross-compile.patch
+git apply "${patches_dir}"/electron-33-003-enable-ppc64le-cross-compile.patch
 
 # Build
 cd "${electron_src}"
