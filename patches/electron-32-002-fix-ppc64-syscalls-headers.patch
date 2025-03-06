@@ -1,11 +1,11 @@
 diff --git a/sandbox/linux/system_headers/ppc64_linux_syscalls.h b/sandbox/linux/system_headers/ppc64_linux_syscalls.h
-index b6cbeec2d1e40..287fb50adf233 100644
+index b6cbeec2d1e40..8375d1119b0d0 100644
 --- a/sandbox/linux/system_headers/ppc64_linux_syscalls.h
 +++ b/sandbox/linux/system_headers/ppc64_linux_syscalls.h
-@@ -22,4 +22,16 @@
+@@ -22,4 +22,20 @@
  #define __NR_shmat      397
  #endif
- 
+
 +#if !defined(__NR_pidfd_open)
 +#define __NR_pidfd_open 434
 +#endif
@@ -16,6 +16,10 @@ index b6cbeec2d1e40..287fb50adf233 100644
 +
 +#if !defined(__NR_landlock_create_ruleset)
 +#define __NR_landlock_create_ruleset 444
++#endif
++
++#if !defined(__NR_mseal)
++#define __NR_mseal 462
 +#endif
 +
  #endif  // SANDBOX_LINUX_SYSTEM_HEADERS_PPC64_LINUX_SYSCALLS_H_

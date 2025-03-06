@@ -2,7 +2,7 @@
 # -----------------------------------------------------------------------------
 #
 # Package         : Electron
-# Version         : 32.2.7
+# Version         : 34.2.0
 # Source repo     : https://github.com/electron/electron
 # Tested on       : RHEL 8.10
 # Language        : C++
@@ -20,7 +20,7 @@
 
 # shellcheck disable=SC2034
 PACKAGE_NAME="electron"
-PACKAGE_VERSION=${1:-"v32.2.7"}
+PACKAGE_VERSION=${1:-"v34.2.0"}
 PACKAGE_URL="https://github.com/electron/electron"
 
 set -eux
@@ -117,7 +117,7 @@ else
 fi
 
 # Timothy Pearson's patchset
-# https://gitlab.solidsilicon.io/public-development/open-source/chromium/openpower-patches/-/tree/chromium-128/patches/ppc64le
+# https://gitlab.raptorengineering.com/raptor-engineering-public/chromium/openpower-patches
 # Note(lex-ibm): We could automate getting the patches from the above URL, but after some discussions we decided it is better
 # to have the patches in the same repository for better control/visibility.
 while IFS= read -r patch; do
@@ -128,13 +128,33 @@ done <"${patches_dir}"/series
 
 # EPEL8 Chromium patches
 # https://src.fedoraproject.org/rpms/chromium
-git apply "${patches_dir}"/fedora/chromium-118-dma_buf_export_sync_file-conflict.patch
-git apply "${patches_dir}"/fedora/chromium-127-rust-clanglib.patch
+patch -p1 < "${patches_dir}"/fedora/chromium-117-widevine-other-locations.patch
+patch -p1 < "${patches_dir}"/fedora/chromium-disable-font-tests.patch
+patch -p1 < "${patches_dir}"/fedora/chromium-123-screen-ai-service.patch
+patch -p1 < "${patches_dir}"/fedora/chromium-98.0.4758.102-remoting-no-tests.patch
+patch -p1 < "${patches_dir}"/fedora/chromium-107-proprietary-codecs.patch
+patch -p1 < "${patches_dir}"/fedora/chromium-118-sigtrap_system_ffmpeg.patch
+patch -p1 < "${patches_dir}"/fedora/chromium-121-system-old-ffmpeg.patch
+patch -p1 < "${patches_dir}"/fedora/chromium-125-disable-FFmpegAllowLists.patch
+patch -p1 < "${patches_dir}"/fedora/chromium-129-disable-H.264-video-parser-during-demuxing.patch
+patch -p1 < "${patches_dir}"/fedora/chromium-118-dma_buf_export_sync_file-conflict.patch
+# git apply "${patches_dir}"/fedora/chromium-131-revert-decommit-pooled-pages-by-default.patch
+patch -p1 < "${patches_dir}"/fedora/chromium-129-el8-atk-compiler-error.patch
+patch -p1 < "${patches_dir}"/fedora/chromium-132-el8-unsupport-clang-flags.patch
+patch -p1 < "${patches_dir}"/fedora/chromium-132-el8-unsupport-rustc-flags.patch
+patch -p1 < "${patches_dir}"/fedora/chromium-132-el8-clang18-build-error.patch
+patch -p1 < "${patches_dir}"/fedora/chromium-123-fstack-protector-strong.patch
+patch -p1 < "${patches_dir}"/fedora/chromium-122-clang-build-flags.patch
+patch -p1 < "${patches_dir}"/fedora/chromium-126-split-threshold-for-reg-with-hint.patch
+patch -p1 < "${patches_dir}"/fedora/chromium-130-hardware_destructive_interference_size.patch
+patch -p1 < "${patches_dir}"/fedora/chromium-127-rust-clanglib.patch
+patch -p1 < "${patches_dir}"/fedora/0001-swiftshader-fix-build.patch
 
 # Electron PowerPC64 Little Endian support
-git apply "${patches_dir}"/electron-32-001-fix-runtime-api-delegate.patch
-git apply "${patches_dir}"/electron-32-002-fix-ppc64-syscalls-headers.patch
-git apply "${patches_dir}"/electron-32-003-enable-ppc64le-cross-compile.patch
+patch -p1 < "${patches_dir}"/electron-32-001-fix-runtime-api-delegate.patch
+patch -p1 < "${patches_dir}"/electron-32-002-fix-ppc64-syscalls-headers.patch
+patch -p1 < "${patches_dir}"/electron-32-004-libpng.patch
+patch -p1 < "${patches_dir}"/electron-34-001-remove-warnings.patch
 
 # Build
 cd "${electron_src}"
@@ -157,45 +177,18 @@ electron/script/add-debug-link.py --target-cpu="ppc64" --debug-dir="${electron_o
 
 # Build Electron dist.zip
 ninja -j "$(nproc)" -C "${electron_out}" electron:electron_dist_zip
-electron/script/zip_manifests/check-zip-manifest.py "${electron_out}/dist.zip" electron/script/zip_manifests/dist_zip.linux.arm64.manifest # This works, so ¯\_(ツ)_/¯
+electron/script/zip_manifests/check-zip-manifest.py "${electron_out}/dist.zip" electron/script/zip_manifests/dist_zip.linux.x64.manifest # This works, so ¯\_(ツ)_/¯
 
 # Build Mksnapshot
 ninja -j "$(nproc)" -C "${electron_out}" electron:electron_mksnapshot
 gn desc "${electron_out}" v8:run_mksnapshot_default args > "${electron_out}/mksnapshot_args"
 sed -i '/.*builtins-pgo/d' "${electron_out}/mksnapshot_args"
 sed -i '/--turbo-profiling-input/d' "${electron_out}/mksnapshot_args"
-if [ "$(arch)" == "x86_64" ]; then
-  electron/script/strip-binaries.py --file "${electron_out}/clang_x64_v8_ppc64/mksnapshot"
-  electron/script/strip-binaries.py --file "${electron_out}/clang_x64_v8_ppc64/v8_context_snapshot_generator"
-elif [ "$(arch)" == "aarch64" ]; then
-  electron/script/strip-binaries.py --file "${electron_out}/clang_arm64_v8_ppc64/mksnapshot"
-  electron/script/strip-binaries.py --file "${electron_out}/clang_arm64_v8_ppc64/v8_context_snapshot_generator"
-else
-  electron/script/strip-binaries.py --file "${electron_out}/mksnapshot"
-  electron/script/strip-binaries.py --file "${electron_out}/v8_context_snapshot_generator"
-fi
+electron/script/strip-binaries.py --file "${electron_out}/mksnapshot"
+electron/script/strip-binaries.py --file "${electron_out}/v8_context_snapshot_generator"
 ninja -j "$(nproc)" -C "${electron_out}" electron:electron_mksnapshot_zip
 cd "${electron_out}"
 zip mksnapshot.zip mksnapshot_args gen/v8/embedded.S
-
-# Generate Cross-Arch Snapshot
-if [ "$(arch)" != "ppc64le" ]; then
-  if [ "$(arch)" = "aarch64" ]; then
-    MKSNAPSHOT_PATH="clang_arm64_v8_ppc64"
-  elif [ "$(arch)" = "x86_64" ]; then
-    MKSNAPSHOT_PATH="clang_x64_v8_ppc64"
-  fi
-
-  cp "out/Default/$MKSNAPSHOT_PATH/mksnapshot" "${electron_out}"
-  cp "out/Default/$MKSNAPSHOT_PATH/v8_context_snapshot_generator" "${electron_out}"
-  cp "out/Default/$MKSNAPSHOT_PATH/libffmpeg.so" "${electron_out}"
-
-  python3 electron/script/verify-mksnapshot.py --source-root "${electron_src}" --build-dir "${electron_out}" --create-snapshot-only
-  mkdir cross-arch-snapshots
-  cp "${electron_out}-mksnapshot-test"/*.bin cross-arch-snapshots
-  # Clean up so that ninja does not get confused
-  rm -f "${electron_out}"/libffmpeg.so
-fi
 
 cd "${electron_src}"
 
@@ -256,7 +249,7 @@ curl -sL "https://github.com/electron/electron/releases/download/${PACKAGE_VERSI
 echo "" >> SHASUMS256.txt.orig
 grep -v -e "hunspell_dictionaries.zip" -e "libcxxabi_headers.zip" -e "libcxx_headers.zip" -e "electron.d.ts" SHASUMS256.txt > SHASUMS256.txt.tmp
 cat SHASUMS256.txt.tmp SHASUMS256.txt.orig | sort -k2 > SHASUMS256.txt.pp64le
-diff -u SHASUMS256.txt.orig SHASUMS256.txt.pp64le > "${assets_dir}/SHASUMS256.txt.patch"
+diff -u SHASUMS256.txt.orig SHASUMS256.txt.pp64le > "${assets_dir}/SHASUMS256.txt.patch" || true
 rm -f SHASUMS256.txt.orig SHASUMS256.txt.tmp SHASUMS256.txt.pp64le
 
 echo "Build completed successfully!"

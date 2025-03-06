@@ -1,7 +1,7 @@
-Index: chromium-128.0.6613.119/third_party/webrtc/rtc_base/system/arch.h
+Index: chromium-132.0.6834.83/third_party/webrtc/rtc_base/system/arch.h
 ===================================================================
---- chromium-128.0.6613.119.orig/third_party/webrtc/rtc_base/system/arch.h
-+++ chromium-128.0.6613.119/third_party/webrtc/rtc_base/system/arch.h
+--- chromium-132.0.6834.83.orig/third_party/webrtc/rtc_base/system/arch.h
++++ chromium-132.0.6834.83/third_party/webrtc/rtc_base/system/arch.h
 @@ -46,6 +46,18 @@
  #endif
  #if defined(__MIPSEL__)

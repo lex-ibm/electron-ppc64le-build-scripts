@@ -1,8 +1,8 @@
-Index: chromium-128.0.6613.119/build/config/compiler/BUILD.gn
+Index: chromium-132.0.6834.83/build/config/compiler/BUILD.gn
 ===================================================================
---- chromium-128.0.6613.119.orig/build/config/compiler/BUILD.gn
-+++ chromium-128.0.6613.119/build/config/compiler/BUILD.gn
-@@ -1445,7 +1445,7 @@ config("compiler_cpu_abi") {
+--- chromium-132.0.6834.83.orig/build/config/compiler/BUILD.gn
++++ chromium-132.0.6834.83/build/config/compiler/BUILD.gn
+@@ -1497,7 +1497,7 @@ config("compiler_cpu_abi") {
          cflags += [ "-maix64" ]
          ldflags += [ "-maix64" ]
        } else {
@@ -11,10 +11,10 @@ Index: chromium-128.0.6613.119/build/config/compiler/BUILD.gn
          ldflags += [ "-m64" ]
        }
      } else if (current_cpu == "riscv64") {
-Index: chromium-128.0.6613.119/third_party/libvpx/BUILD.gn
+Index: chromium-132.0.6834.83/third_party/libvpx/BUILD.gn
 ===================================================================
---- chromium-128.0.6613.119.orig/third_party/libvpx/BUILD.gn
-+++ chromium-128.0.6613.119/third_party/libvpx/BUILD.gn
+--- chromium-132.0.6834.83.orig/third_party/libvpx/BUILD.gn
++++ chromium-132.0.6834.83/third_party/libvpx/BUILD.gn
 @@ -105,7 +105,7 @@ config("libvpx_config") {
  
    if (current_cpu == "ppc64") {
@@ -24,12 +24,12 @@ Index: chromium-128.0.6613.119/third_party/libvpx/BUILD.gn
        "-maltivec",
        "-mvsx",
      ]
-Index: chromium-128.0.6613.119/v8/BUILD.gn
+Index: chromium-132.0.6834.83/v8/BUILD.gn
 ===================================================================
---- chromium-128.0.6613.119.orig/v8/BUILD.gn
-+++ chromium-128.0.6613.119/v8/BUILD.gn
-@@ -1419,7 +1419,7 @@ config("toolchain") {
-       defines += [ "V8_TARGET_ARCH_PPC_LE" ]
+--- chromium-132.0.6834.83.orig/v8/BUILD.gn
++++ chromium-132.0.6834.83/v8/BUILD.gn
+@@ -1471,7 +1471,7 @@ config("toolchain") {
+     if (current_os == "linux") {
          cflags += [
          # Enable usage of AltiVec, VSX, and other POWER8 and higher features
 -        "-mcpu=power8",

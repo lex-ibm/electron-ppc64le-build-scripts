@@ -1,0 +1,17 @@
+diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
+index f58320b88f207..013d62aa5d27a 100644
+--- a/build/config/compiler/BUILD.gn
++++ b/build/config/compiler/BUILD.gn
+@@ -1989,10 +1975,10 @@ config("default_warnings") {
+         ]
+ 
+         # TODO(crbug.com/344680447): Fix and re-enable.
+-        cflags_cc += [ "-Wno-missing-template-arg-list-after-template-kw" ]
++        # cflags_cc += [ "-Wno-missing-template-arg-list-after-template-kw" ]
+ 
+         # TODO(crbug.com/356172342): Fix and re-enable.
+-        cflags_cc += [ "-Wno-dangling-assignment-gsl" ]
++        # cflags_cc += [ "-Wno-dangling-assignment-gsl" ]
+ 
+         if (llvm_force_head_revision) {
+           # TODO(crbug.com/376641662): Fix and re-enable.
