@@ -122,9 +122,9 @@ fi
 # to have the patches in the same repository for better control/visibility.
 while IFS= read -r patch; do
   if [[ $patch =~ ^ppc64le ]]; then
-    git apply "${patches_dir}/${patch}"
+    git apply "${patches_dir}/openpower-patches/${patch}"
   fi
-done <"${patches_dir}"/series
+done <"${patches_dir}"/openpower-patches/series
 
 # EPEL8 Chromium patches
 # https://src.fedoraproject.org/rpms/chromium
