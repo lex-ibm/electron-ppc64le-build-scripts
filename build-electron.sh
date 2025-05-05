@@ -2,7 +2,7 @@
 # -----------------------------------------------------------------------------
 #
 # Package         : Electron
-# Version         : 34.2.0
+# Version         : 34.5.4
 # Source repo     : https://github.com/electron/electron
 # Tested on       : RHEL 8.10
 # Language        : C++
@@ -20,7 +20,7 @@
 
 # shellcheck disable=SC2034
 PACKAGE_NAME="electron"
-PACKAGE_VERSION=${1:-"v34.2.0"}
+PACKAGE_VERSION=${1:-"v34.5.4"}
 PACKAGE_URL="https://github.com/electron/electron"
 
 set -eux
