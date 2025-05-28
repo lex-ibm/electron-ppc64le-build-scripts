@@ -1,3 +1,5 @@
+fixes/swiftshader-llvm.patch
+
 # POWER support
 ppc64le/sandbox/0001-linux-seccomp-bpf-ppc64-glibc-workaround-in-SIGSYS-h.patch
 ppc64le/sandbox/0001-sandbox-Enable-seccomp_bpf-for-ppc64.patch
@@ -22,6 +24,7 @@ ppc64le/third_party/0001-third_party-libvpx-Properly-generate-gni-on-ppc64.patch
 ppc64le/third_party/0001-third_party-lss-Don-t-look-for-mmap2-on-ppc64.patch
 ppc64le/third_party/0001-third_party-pffft-Include-altivec.h-on-ppc64-with-SI.patch
 ppc64le/third_party/0001-swiftshader-fix-build.patch
+ppc64le/third_party/0001-third-party-hwy-wrong-include.patch
 ppc64le/third_party/0002-Add-PPC64-generated-files-for-boringssl.patch
 ppc64le/third_party/0002-third_party-lss-kernel-structs.patch
 

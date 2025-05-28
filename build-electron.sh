@@ -2,7 +2,7 @@
 # -----------------------------------------------------------------------------
 #
 # Package         : Electron
-# Version         : 34.5.4
+# Version         : 35.4.0
 # Source repo     : https://github.com/electron/electron
 # Tested on       : RHEL 8.10
 # Language        : C++
@@ -20,7 +20,7 @@
 
 # shellcheck disable=SC2034
 PACKAGE_NAME="electron"
-PACKAGE_VERSION=${1:-"v34.5.4"}
+PACKAGE_VERSION=${1:-"v35.4.0"}
 PACKAGE_URL="https://github.com/electron/electron"
 
 set -eux
@@ -126,35 +126,39 @@ while IFS= read -r patch; do
   fi
 done <"${patches_dir}"/openpower-patches/series
 
-# EPEL8 Chromium patches
+# EPEL8 (and EPEL9) Chromium patches
 # https://src.fedoraproject.org/rpms/chromium
-patch -p1 < "${patches_dir}"/fedora/chromium-117-widevine-other-locations.patch
-patch -p1 < "${patches_dir}"/fedora/chromium-disable-font-tests.patch
-patch -p1 < "${patches_dir}"/fedora/chromium-123-screen-ai-service.patch
-patch -p1 < "${patches_dir}"/fedora/chromium-98.0.4758.102-remoting-no-tests.patch
-patch -p1 < "${patches_dir}"/fedora/chromium-107-proprietary-codecs.patch
-patch -p1 < "${patches_dir}"/fedora/chromium-118-sigtrap_system_ffmpeg.patch
-patch -p1 < "${patches_dir}"/fedora/chromium-121-system-old-ffmpeg.patch
-patch -p1 < "${patches_dir}"/fedora/chromium-125-disable-FFmpegAllowLists.patch
-patch -p1 < "${patches_dir}"/fedora/chromium-129-disable-H.264-video-parser-during-demuxing.patch
-patch -p1 < "${patches_dir}"/fedora/chromium-118-dma_buf_export_sync_file-conflict.patch
-# git apply "${patches_dir}"/fedora/chromium-131-revert-decommit-pooled-pages-by-default.patch
-patch -p1 < "${patches_dir}"/fedora/chromium-129-el8-atk-compiler-error.patch
-patch -p1 < "${patches_dir}"/fedora/chromium-132-el8-unsupport-clang-flags.patch
-patch -p1 < "${patches_dir}"/fedora/chromium-132-el8-unsupport-rustc-flags.patch
-patch -p1 < "${patches_dir}"/fedora/chromium-132-el8-clang18-build-error.patch
-patch -p1 < "${patches_dir}"/fedora/chromium-123-fstack-protector-strong.patch
-patch -p1 < "${patches_dir}"/fedora/chromium-122-clang-build-flags.patch
-patch -p1 < "${patches_dir}"/fedora/chromium-126-split-threshold-for-reg-with-hint.patch
-patch -p1 < "${patches_dir}"/fedora/chromium-130-hardware_destructive_interference_size.patch
-patch -p1 < "${patches_dir}"/fedora/chromium-127-rust-clanglib.patch
-patch -p1 < "${patches_dir}"/fedora/0001-swiftshader-fix-build.patch
+patch -p1 < "${patches_dir}"/fedora/chromium-117-widevine-other-locations.patch # Patch8 P8
+patch -p1 < "${patches_dir}"/fedora/chromium-disable-font-tests.patch # Patch20 P20
+patch -p1 < "${patches_dir}"/fedora/chromium-123-screen-ai-service.patch # Patch21 P21
+patch -p1 < "${patches_dir}"/fedora/chromium-98.0.4758.102-remoting-no-tests.patch # Patch82 P82
+patch -p1 < "${patches_dir}"/fedora/chromium-118-dma_buf_export_sync_file-conflict.patch # Patch141 P141
+patch -p1 < "${patches_dir}"/fedora/chromium-124-qt6.patch # Patch150 P150
+patch -p1 < "${patches_dir}"/fedora/chromium-107-proprietary-codecs.patch # Patch131 P131
+patch -p1 < "${patches_dir}"/fedora/chromium-118-sigtrap_system_ffmpeg.patch # Patch132 P132
+patch -p1 < "${patches_dir}"/fedora/chromium-121-system-old-ffmpeg.patch # Patch133 P133
+patch -p1 < "${patches_dir}"/fedora/chromium-133-disable-H.264-video-parser-during-demuxing.patch # Patch135 P135
+patch -p1 < "${patches_dir}"/fedora/chromium-133-workaround-system-ffmpeg-whitelist.patch # Patch136 P136
+# patch -p1 < "${patches_dir}"/fedora/chromium-131-revert-decommit-pooled-pages-by-default.patch # Patch300 P300 # Applied already
+patch -p1 < "${patches_dir}"/fedora/chromium-133-el8-atk-compiler-error.patch # Patch307 P307
+patch -p1 < "${patches_dir}"/fedora/chromium-132-el8-unsupport-clang-flags.patch # Patch308 P308
+patch -p1 < "${patches_dir}"/fedora/chromium-132-el8-unsupport-rustc-flags.patch # Patch309 P309
+patch -p1 < "${patches_dir}"/fedora/chromium-132-el8-clang18-build-error.patch # Patch310 P310
+patch -p1 < "${patches_dir}"/fedora/chromium-133-clang18-template.patch # Patch311 P311
+patch -p1 < "${patches_dir}"/fedora/chromium-123-fstack-protector-strong.patch # Patch312 P312
+patch -p1 < "${patches_dir}"/fedora/chromium-134-clang-unknown-option.patch # Patch314 P314
+patch -p1 < "${patches_dir}"/fedora/chromium-134-rust-libadler2.patch # Patch315 P315
+patch -p1 < "${patches_dir}"/fedora/chromium-122-clang-build-flags.patch # Patch316 P316
+patch -p1 < "${patches_dir}"/fedora/chromium-126-split-threshold-for-reg-with-hint.patch # Patch354 P354
+patch -p1 < "${patches_dir}"/fedora/chromium-130-hardware_destructive_interference_size.patch # Patch355 P355
+patch -p1 < "${patches_dir}"/fedora/chromium-127-rust-clanglib.patch # Patch358 P358
+patch -p1 < "${patches_dir}"/fedora/0001-swiftshader-fix-build.patch # Patch383 P383
 
 # Electron PowerPC64 Little Endian support
 patch -p1 < "${patches_dir}"/electron-32-001-fix-runtime-api-delegate.patch
 patch -p1 < "${patches_dir}"/electron-32-002-fix-ppc64-syscalls-headers.patch
 patch -p1 < "${patches_dir}"/electron-32-004-libpng.patch
-patch -p1 < "${patches_dir}"/electron-34-001-remove-warnings.patch
+patch -p1 < "${patches_dir}"/electron-35-001-remove-warnings.patch
 
 # Build
 cd "${electron_src}"
@@ -197,7 +201,7 @@ ninja -j "$(nproc)" -C "${electron_out}" electron:electron_chromedriver
 ninja -C "${electron_out}" electron:electron_chromedriver_zip
 
 # Build Node.js headers
-ninja -j "$(nproc)" -C "${electron_out}" electron:node_headers
+ELECTRON_OUT_DIR="$electron_out" ninja -j "$(nproc)" -C "${electron_out}" electron:node_headers
 
 # Generate & Zip Symbols
 ninja -j "$(nproc)" -C "${electron_out}" electron:electron_symbols

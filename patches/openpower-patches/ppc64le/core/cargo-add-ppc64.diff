@@ -1,7 +1,7 @@
-Index: chromium-132.0.6834.83/build/rust/cargo_crate.gni
+Index: chromium-134.0.6998.35/build/rust/cargo_crate.gni
 ===================================================================
---- chromium-132.0.6834.83.orig/build/rust/cargo_crate.gni
-+++ chromium-132.0.6834.83/build/rust/cargo_crate.gni
+--- chromium-134.0.6998.35.orig/build/rust/cargo_crate.gni
++++ chromium-134.0.6998.35/build/rust/cargo_crate.gni
 @@ -450,7 +450,7 @@ template("cargo_crate") {
          ]
        }

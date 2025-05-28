@@ -1,6 +1,6 @@
-diff -up chromium-129.0.6668.58/content/browser/accessibility/accessibility_auralinux_browsertest.cc.me chromium-129.0.6668.58/content/browser/accessibility/accessibility_auralinux_browsertest.cc
---- chromium-129.0.6668.58/content/browser/accessibility/accessibility_auralinux_browsertest.cc.me	2024-09-18 19:26:40.951100740 +0200
-+++ chromium-129.0.6668.58/content/browser/accessibility/accessibility_auralinux_browsertest.cc	2024-09-18 19:28:06.219700474 +0200
+diff -up chromium-133.0.6943.35/content/browser/accessibility/accessibility_auralinux_browsertest.cc.el8-atk-compiler-error chromium-133.0.6943.35/content/browser/accessibility/accessibility_auralinux_browsertest.cc
+--- chromium-133.0.6943.35/content/browser/accessibility/accessibility_auralinux_browsertest.cc.el8-atk-compiler-error	2025-01-28 23:03:27.000000000 +0100
++++ chromium-133.0.6943.35/content/browser/accessibility/accessibility_auralinux_browsertest.cc	2025-02-04 10:56:08.414126354 +0100
 @@ -3,6 +3,7 @@
  // found in the LICENSE file.
  
@@ -9,7 +9,7 @@ diff -up chromium-129.0.6668.58/content/browser/accessibility/accessibility_aura
  
  #include <string>
  #include <vector>
-@@ -547,6 +548,10 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
+@@ -549,6 +550,10 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
    g_object_unref(div_element);
  }
  
@@ -20,7 +20,7 @@ diff -up chromium-129.0.6668.58/content/browser/accessibility/accessibility_aura
  IN_PROC_BROWSER_TEST_F(AccessibilityAuraLinuxBrowserTest,
                         TestCharacterExtentsWithInvalidArguments) {
    AtkText* atk_text = SetUpSampleParagraph();
-@@ -569,12 +574,14 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
+@@ -571,12 +576,14 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
    EXPECT_EQ(expect, width);
    EXPECT_EQ(expect, height);
  
@@ -35,7 +35,7 @@ diff -up chromium-129.0.6668.58/content/browser/accessibility/accessibility_aura
  
    atk_text_get_character_extents(atk_text, invalid_offset, &x, &y, &width,
                                   &height, ATK_XY_WINDOW);
-@@ -593,12 +600,14 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
+@@ -595,12 +602,14 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
    EXPECT_EQ(expect, width);
    EXPECT_EQ(expect, height);
  
@@ -50,7 +50,7 @@ diff -up chromium-129.0.6668.58/content/browser/accessibility/accessibility_aura
  
    atk_text_get_character_extents(atk_text, invalid_offset, &x, &y, &width,
                                   &height, ATK_XY_WINDOW);
-@@ -613,7 +622,9 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
+@@ -615,7 +624,9 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
  AtkCoordType kCoordinateTypes[] = {
      ATK_XY_SCREEN,
      ATK_XY_WINDOW,
@@ -60,7 +60,7 @@ diff -up chromium-129.0.6668.58/content/browser/accessibility/accessibility_aura
  };
  
  IN_PROC_BROWSER_TEST_F(AccessibilityAuraLinuxBrowserTest,
-@@ -872,6 +883,7 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
+@@ -874,6 +885,7 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
    TestCharacterExtentsInScrollableInput();
  }
  
@@ -68,7 +68,7 @@ diff -up chromium-129.0.6668.58/content/browser/accessibility/accessibility_aura
  typedef bool (*ScrollToPointFunc)(AtkComponent* component,
                                    AtkCoordType coords,
                                    gint x,
-@@ -881,6 +893,18 @@ typedef bool (*ScrollToFunc)(AtkComponen
+@@ -883,6 +895,18 @@ typedef bool (*ScrollToFunc)(AtkComponen
  // TODO(crbug.com/40866728): Enable this test.
  IN_PROC_BROWSER_TEST_F(AccessibilityAuraLinuxBrowserTest,
                         DISABLED_TestScrollToPoint) {
@@ -87,7 +87,7 @@ diff -up chromium-129.0.6668.58/content/browser/accessibility/accessibility_aura
    LoadSampleParagraphInScrollableDocument();
    AtkText* atk_text = GetSampleParagraph();
    ASSERT_TRUE(ATK_IS_COMPONENT(atk_text));
-@@ -893,7 +917,7 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
+@@ -895,7 +919,7 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
    AccessibilityNotificationWaiter location_changed_waiter(
        shell()->web_contents(), ui::kAXModeComplete,
        ax::mojom::Event::kLocationChanged);
@@ -96,7 +96,7 @@ diff -up chromium-129.0.6668.58/content/browser/accessibility/accessibility_aura
    ASSERT_TRUE(location_changed_waiter.WaitForNotification());
  
    atk_component_get_extents(atk_component, &x, &y, nullptr, nullptr,
-@@ -902,20 +926,20 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
+@@ -904,20 +928,20 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
    EXPECT_GT(prev_y, y);
  
    constexpr int kScrollToY = 0;
@@ -120,7 +120,7 @@ diff -up chromium-129.0.6668.58/content/browser/accessibility/accessibility_aura
    ASSERT_TRUE(location_changed_waiter.WaitForNotification());
    atk_component_get_extents(atk_component, nullptr, &y, nullptr, nullptr,
                              ATK_XY_SCREEN);
-@@ -932,6 +956,17 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
+@@ -934,6 +958,17 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
  // TODO(crbug.com/40866728): Enable this test.
  IN_PROC_BROWSER_TEST_F(AccessibilityAuraLinuxBrowserTest,
                         DISABLED_TestScrollTo) {
@@ -138,7 +138,7 @@ diff -up chromium-129.0.6668.58/content/browser/accessibility/accessibility_aura
    LoadInitialAccessibilityTreeFromHtml(
        R"HTML(<!DOCTYPE html>
        <html>
-@@ -973,8 +1008,7 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
+@@ -975,8 +1010,7 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
    AccessibilityNotificationWaiter waiter(
        shell()->web_contents(), ui::kAXModeComplete,
        ax::mojom::Event::kScrollPositionChanged);
@@ -148,7 +148,7 @@ diff -up chromium-129.0.6668.58/content/browser/accessibility/accessibility_aura
    ASSERT_TRUE(waiter.WaitForNotification());
    int x, y;
    atk_component_get_extents(ATK_COMPONENT(target), &x, &y, nullptr, nullptr,
-@@ -982,40 +1016,35 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
+@@ -984,40 +1018,35 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
    EXPECT_EQ(y, doc_y);
    EXPECT_NE(x, doc_x);
  
@@ -194,7 +194,7 @@ diff -up chromium-129.0.6668.58/content/browser/accessibility/accessibility_aura
    ASSERT_TRUE(waiter.WaitForNotification());
    atk_component_get_extents(ATK_COMPONENT(target2), &x, &y, nullptr, nullptr,
                              ATK_XY_SCREEN);
-@@ -1047,10 +1076,39 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
+@@ -1049,10 +1078,39 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
    g_object_unref(target2);
    g_object_unref(target3);
  }
@@ -234,7 +234,7 @@ diff -up chromium-129.0.6668.58/content/browser/accessibility/accessibility_aura
    LoadInitialAccessibilityTreeFromHtml(
        R"HTML(<!DOCTYPE html>
        <html>
-@@ -1084,8 +1142,7 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
+@@ -1086,8 +1144,7 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
    AccessibilityNotificationWaiter waiter(
        shell()->web_contents(), ui::kAXModeComplete,
        ax::mojom::Event::kScrollPositionChanged);
@@ -244,7 +244,7 @@ diff -up chromium-129.0.6668.58/content/browser/accessibility/accessibility_aura
    ASSERT_TRUE(waiter.WaitForNotification());
    int x, y;
    atk_text_get_character_extents(ATK_TEXT(target1), 1, &x, &y, nullptr, nullptr,
-@@ -1093,40 +1150,37 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
+@@ -1095,40 +1152,37 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
    EXPECT_EQ(y, doc_y);
    EXPECT_NE(x, doc_x);
  
@@ -292,7 +292,7 @@ diff -up chromium-129.0.6668.58/content/browser/accessibility/accessibility_aura
    ASSERT_TRUE(waiter.WaitForNotification());
    atk_text_get_character_extents(ATK_TEXT(target1), 1, &x, &y, nullptr, nullptr,
                                   ATK_XY_SCREEN);
-@@ -1136,9 +1190,42 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
+@@ -1138,9 +1192,42 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
    g_object_unref(target1);
  }
  
@@ -335,7 +335,7 @@ diff -up chromium-129.0.6668.58/content/browser/accessibility/accessibility_aura
    LoadSampleParagraphInScrollableDocument();
    AtkText* atk_text = GetSampleParagraph();
    ASSERT_TRUE(ATK_IS_COMPONENT(atk_text));
-@@ -1151,7 +1238,7 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
+@@ -1153,7 +1240,7 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
    AccessibilityNotificationWaiter location_changed_waiter(
        shell()->web_contents(), ui::kAXModeComplete,
        ax::mojom::Event::kLocationChanged);
@@ -344,7 +344,7 @@ diff -up chromium-129.0.6668.58/content/browser/accessibility/accessibility_aura
    ASSERT_TRUE(location_changed_waiter.WaitForNotification());
  
    atk_text_get_character_extents(atk_text, 1, &x, &y, nullptr, nullptr,
-@@ -1160,22 +1247,20 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
+@@ -1162,22 +1249,20 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
    EXPECT_GT(prev_y, y);
  
    constexpr int kScrollToY = 0;
@@ -370,7 +370,7 @@ diff -up chromium-129.0.6668.58/content/browser/accessibility/accessibility_aura
    ASSERT_TRUE(location_changed_waiter.WaitForNotification());
    atk_text_get_character_extents(atk_text, 1, &x, &y, nullptr, nullptr,
                                   ATK_XY_SCREEN);
-@@ -1191,6 +1276,7 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
+@@ -1193,6 +1278,7 @@ IN_PROC_BROWSER_TEST_F(AccessibilityAura
  
    g_object_unref(atk_text);
  }
@@ -378,20 +378,12 @@ diff -up chromium-129.0.6668.58/content/browser/accessibility/accessibility_aura
  
  #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
  // Flaky on crbug.com/1026149
-diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_auralinux.cc.me chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_auralinux.cc
---- chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_auralinux.cc.me	2024-09-18 19:26:26.040821017 +0200
-+++ chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_auralinux.cc	2024-09-18 19:28:06.220700493 +0200
-@@ -2,7 +2,6 @@
- // Use of this source code is governed by a BSD-style license that can be
- // found in the LICENSE file.
- 
--#include "base/version.h"
- #ifdef UNSAFE_BUFFERS_BUILD
- // TODO(crbug.com/40285824): Remove this and convert code to safer constructs.
+diff -up chromium-133.0.6943.35/ui/accessibility/platform/ax_platform_node_auralinux.cc.el8-atk-compiler-error chromium-133.0.6943.35/ui/accessibility/platform/ax_platform_node_auralinux.cc
+--- chromium-133.0.6943.35/ui/accessibility/platform/ax_platform_node_auralinux.cc.el8-atk-compiler-error	2025-01-28 23:03:27.000000000 +0100
++++ chromium-133.0.6943.35/ui/accessibility/platform/ax_platform_node_auralinux.cc	2025-02-04 10:56:08.424126602 +0100
+@@ -7,6 +7,7 @@
  #pragma allow_unsafe_buffers
-@@ -10,6 +9,7 @@
- 
- #include "ui/accessibility/platform/ax_platform_node_auralinux.h"
+ #endif
  
 +#include <dlfcn.h>
  #include <stdint.h>
@@ -565,7 +557,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
  }
  
  const GInterfaceInfo Info = {reinterpret_cast<GInterfaceInitFunc>(Init),
-@@ -1232,6 +1262,7 @@ gboolean AddSelection(AtkText* atk_text,
+@@ -1310,6 +1340,7 @@ gboolean AddSelection(AtkText* atk_text,
    return SetSelection(atk_text, 0, start_offset, end_offset);
  }
  
@@ -573,7 +565,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
  char* GetStringAtOffset(AtkText* atk_text,
                          int offset,
                          AtkTextGranularity atk_granularity,
-@@ -1246,7 +1277,9 @@ char* GetStringAtOffset(AtkText* atk_tex
+@@ -1324,7 +1355,9 @@ char* GetStringAtOffset(AtkText* atk_tex
    return GetTextWithBoundaryType(atk_text, offset, boundary, start_offset,
                                   end_offset);
  }
@@ -583,7 +575,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
  gfx::Rect GetUnclippedParentHypertextRangeBoundsRect(
      AXPlatformNodeDelegate* ax_platform_node_delegate,
      const int start_offset,
-@@ -1270,6 +1303,7 @@ gfx::Rect GetUnclippedParentHypertextRan
+@@ -1348,6 +1381,7 @@ gfx::Rect GetUnclippedParentHypertextRan
                               AXClippingBehavior::kClipped)
               .OffsetFromOrigin();
  }
@@ -591,7 +583,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
  
  void GetCharacterExtents(AtkText* atk_text,
                           int offset,
-@@ -1285,10 +1319,12 @@ void GetCharacterExtents(AtkText* atk_te
+@@ -1363,10 +1397,12 @@ void GetCharacterExtents(AtkText* atk_te
        AXPlatformNodeAuraLinux::FromAtkObject(ATK_OBJECT(atk_text));
    if (obj) {
      switch (coordinate_type) {
@@ -604,7 +596,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
        default:
          rect = obj->GetDelegate()->GetHypertextRangeBoundsRect(
              obj->UnicodeToUTF16OffsetInText(offset),
-@@ -1324,10 +1360,12 @@ void GetRangeExtents(AtkText* atk_text,
+@@ -1402,10 +1438,12 @@ void GetRangeExtents(AtkText* atk_text,
        AXPlatformNodeAuraLinux::FromAtkObject(ATK_OBJECT(atk_text));
    if (obj) {
      switch (coordinate_type) {
@@ -617,7 +609,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
        default:
          rect = obj->GetDelegate()->GetHypertextRangeBoundsRect(
              obj->UnicodeToUTF16OffsetInText(start_offset),
-@@ -1377,6 +1415,7 @@ AtkAttributeSet* GetDefaultAttributes(At
+@@ -1455,6 +1493,7 @@ AtkAttributeSet* GetDefaultAttributes(At
    return ToAtkAttributeSet(obj->GetDefaultTextAttributes());
  }
  
@@ -625,7 +617,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
  gboolean ScrollSubstringTo(AtkText* atk_text,
                             gint start_offset,
                             gint end_offset,
-@@ -1407,6 +1446,7 @@ gboolean ScrollSubstringToPoint(AtkText*
+@@ -1485,6 +1524,7 @@ gboolean ScrollSubstringToPoint(AtkText*
    return obj->ScrollSubstringToPoint(start_offset, end_offset, atk_coord_type,
                                       x, y);
  }
@@ -633,7 +625,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
  
  void Init(AtkTextIface* iface) {
    iface->get_text = GetText;
-@@ -1429,12 +1469,16 @@ void Init(AtkTextIface* iface) {
+@@ -1507,12 +1547,16 @@ void Init(AtkTextIface* iface) {
    iface->get_run_attributes = GetRunAttributes;
    iface->get_default_attributes = GetDefaultAttributes;
  
@@ -650,7 +642,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
  }
  
  const GInterfaceInfo Info = {reinterpret_cast<GInterfaceInitFunc>(Init),
-@@ -1837,11 +1881,15 @@ const GInterfaceInfo Info = {reinterpret
+@@ -1915,11 +1959,15 @@ const GInterfaceInfo Info = {reinterpret
  
  }  // namespace atk_table
  
@@ -667,7 +659,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
  
    if (const AXPlatformNodeBase* obj =
            AXPlatformNodeAuraLinux::FromAtkObject(ATK_OBJECT(cell))) {
-@@ -1853,8 +1901,10 @@ gint GetColumnSpan(AtkTableCell* cell) {
+@@ -1931,8 +1979,10 @@ gint GetColumnSpan(AtkTableCell* cell) {
  }
  
  GPtrArray* GetColumnHeaderCells(AtkTableCell* cell) {
@@ -679,7 +671,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
  
    GPtrArray* array = g_ptr_array_new_with_free_func(g_object_unref);
  
-@@ -1888,8 +1938,10 @@ GPtrArray* GetColumnHeaderCells(AtkTable
+@@ -1966,8 +2016,10 @@ GPtrArray* GetColumnHeaderCells(AtkTable
  }
  
  gboolean GetCellPosition(AtkTableCell* cell, gint* row, gint* column) {
@@ -691,7 +683,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
  
    if (auto* obj = AXPlatformNodeAuraLinux::FromAtkObject(ATK_OBJECT(cell))) {
      std::optional<int> row_index = obj->GetTableRow();
-@@ -1906,8 +1958,9 @@ gboolean GetCellPosition(AtkTableCell* c
+@@ -1984,8 +2036,9 @@ gboolean GetCellPosition(AtkTableCell* c
  }
  
  gint GetRowSpan(AtkTableCell* cell) {
@@ -702,7 +694,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
  
    if (auto* obj = AXPlatformNodeAuraLinux::FromAtkObject(ATK_OBJECT(cell))) {
      // If the object is not a cell, we return 0.
-@@ -1918,8 +1971,10 @@ gint GetRowSpan(AtkTableCell* cell) {
+@@ -1996,8 +2049,10 @@ gint GetRowSpan(AtkTableCell* cell) {
  }
  
  GPtrArray* GetRowHeaderCells(AtkTableCell* cell) {
@@ -714,7 +706,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
  
    GPtrArray* array = g_ptr_array_new_with_free_func(g_object_unref);
  
-@@ -1953,8 +2008,10 @@ GPtrArray* GetRowHeaderCells(AtkTableCel
+@@ -2031,8 +2086,10 @@ GPtrArray* GetRowHeaderCells(AtkTableCel
  }
  
  AtkObject* GetTable(AtkTableCell* cell) {
@@ -726,7 +718,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
  
    if (auto* obj = AXPlatformNodeAuraLinux::FromAtkObject(ATK_OBJECT(cell))) {
      if (auto* table = obj->GetTable())
-@@ -1980,6 +2037,8 @@ const GInterfaceInfo Info = {reinterpret
+@@ -2058,6 +2115,8 @@ const GInterfaceInfo Info = {reinterpret
  
  }  // namespace atk_table_cell
  
@@ -735,7 +727,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
  namespace atk_object {
  
  gpointer kAXPlatformNodeAuraLinuxParentClass = nullptr;
-@@ -2246,6 +2305,50 @@ void Detach(AXPlatformNodeAuraLinuxObjec
+@@ -2324,6 +2383,50 @@ void Detach(AXPlatformNodeAuraLinuxObjec
  
  }  // namespace
  
@@ -786,7 +778,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
  void AXPlatformNodeAuraLinux::EnsureGTypeInit() {
  #if !GLIB_CHECK_VERSION(2, 36, 0)
    static bool first_time = true;
-@@ -2353,8 +2456,11 @@ GType AXPlatformNodeAuraLinux::GetAccess
+@@ -2431,8 +2534,11 @@ GType AXPlatformNodeAuraLinux::GetAccess
      g_type_add_interface_static(type, ATK_TYPE_TABLE, &atk_table::Info);
  
    if (interface_mask_.Implements(ImplementedAtkInterfaces::Value::kTableCell)) {
@@ -800,7 +792,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
    }
  
    return type;
-@@ -2584,9 +2690,9 @@ AtkRole AXPlatformNodeAuraLinux::GetAtkR
+@@ -2667,9 +2773,9 @@ AtkRole AXPlatformNodeAuraLinux::GetAtkR
      case ax::mojom::Role::kComplementary:
        return ATK_ROLE_LANDMARK;
      case ax::mojom::Role::kContentDeletion:
@@ -812,7 +804,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
      case ax::mojom::Role::kContentInfo:
      case ax::mojom::Role::kFooter:
        return ATK_ROLE_LANDMARK;
-@@ -3020,12 +3126,14 @@ void AXPlatformNodeAuraLinux::GetAtkStat
+@@ -3105,12 +3211,14 @@ void AXPlatformNodeAuraLinux::GetAtkStat
            static_cast<int32_t>(ax::mojom::AriaCurrentState::kFalse)) {
      atk_state_set_add_state(atk_state_set, ATK_STATE_ACTIVE);
    }
@@ -827,7 +819,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
    if (GetBoolAttribute(ax::mojom::BoolAttribute::kBusy))
      atk_state_set_add_state(atk_state_set, ATK_STATE_BUSY);
    if (GetBoolAttribute(ax::mojom::BoolAttribute::kModal))
-@@ -3064,9 +3172,11 @@ void AXPlatformNodeAuraLinux::GetAtkStat
+@@ -3149,9 +3257,11 @@ void AXPlatformNodeAuraLinux::GetAtkStat
    if (GetData().GetRestriction() != ax::mojom::Restriction::kDisabled) {
      if (GetDelegate()->IsReadOnlySupported() &&
          GetDelegate()->IsReadOnlyOrDisabled()) {
@@ -839,7 +831,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
      } else {
        atk_state_set_add_state(atk_state_set, ATK_STATE_ENABLED);
        atk_state_set_add_state(atk_state_set, ATK_STATE_SENSITIVE);
-@@ -3100,12 +3210,16 @@ struct AtkIntListRelation {
+@@ -3185,12 +3295,16 @@ struct AtkIntListRelation {
  static AtkIntListRelation kIntListRelations[] = {
      {ax::mojom::IntListAttribute::kControlsIds, ATK_RELATION_CONTROLLER_FOR,
       ATK_RELATION_CONTROLLED_BY},
@@ -856,7 +848,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
      {ax::mojom::IntListAttribute::kFlowtoIds, ATK_RELATION_FLOWS_TO,
       ATK_RELATION_FLOWS_FROM},
      {ax::mojom::IntListAttribute::kLabelledbyIds, ATK_RELATION_LABELLED_BY,
-@@ -3884,6 +3998,7 @@ void AXPlatformNodeAuraLinux::OnReadonly
+@@ -3981,6 +4095,7 @@ void AXPlatformNodeAuraLinux::OnReadonly
    if (!obj)
      return;
  
@@ -864,7 +856,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
    // Runtime check in case we were compiled with a newer version of ATK.
    if (!PlatformSupportsState(ATK_STATE_READ_ONLY))
      return;
-@@ -3891,6 +4006,7 @@ void AXPlatformNodeAuraLinux::OnReadonly
+@@ -3988,6 +4103,7 @@ void AXPlatformNodeAuraLinux::OnReadonly
    atk_object_notify_state_change(
        obj, ATK_STATE_READ_ONLY,
        GetData().GetRestriction() == ax::mojom::Restriction::kReadOnly);
@@ -872,7 +864,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
  }
  
  void AXPlatformNodeAuraLinux::OnInvalidStatusChanged() {
-@@ -4217,11 +4333,13 @@ gfx::Rect AXPlatformNodeAuraLinux::GetEx
+@@ -4314,11 +4430,13 @@ gfx::Rect AXPlatformNodeAuraLinux::GetEx
        extents.Offset(window_origin);
        break;
      }
@@ -886,7 +878,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
    }
  
    return extents;
-@@ -4651,6 +4769,7 @@ bool AXPlatformNodeAuraLinux::IsInLiveRe
+@@ -4755,6 +4873,7 @@ bool AXPlatformNodeAuraLinux::IsInLiveRe
    return HasStringAttribute(ax::mojom::StringAttribute::kContainerLiveStatus);
  }
  
@@ -894,7 +886,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
  void AXPlatformNodeAuraLinux::ScrollToPoint(AtkCoordType atk_coord_type,
                                              int x,
                                              int y) {
-@@ -4723,7 +4842,9 @@ void AXPlatformNodeAuraLinux::ScrollNode
+@@ -4827,7 +4946,9 @@ void AXPlatformNodeAuraLinux::ScrollNode
    rect -= rect.OffsetFromOrigin();
    ScrollNodeRectIntoView(rect, atk_scroll_type);
  }
@@ -904,7 +896,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
  std::optional<gfx::Rect>
  AXPlatformNodeAuraLinux::GetUnclippedHypertextRangeBoundsRect(int start_offset,
                                                                int end_offset) {
-@@ -4782,6 +4903,7 @@ bool AXPlatformNodeAuraLinux::ScrollSubs
+@@ -4886,6 +5007,7 @@ bool AXPlatformNodeAuraLinux::ScrollSubs
  
    return true;
  }
@@ -912,7 +904,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
  
  void AXPlatformNodeAuraLinux::ComputeStylesIfNeeded() {
    if (!offset_to_text_attributes_.empty())
-@@ -4964,8 +5086,10 @@ gfx::Point AXPlatformNodeAuraLinux::Conv
+@@ -5066,8 +5188,10 @@ gfx::Point AXPlatformNodeAuraLinux::Conv
    switch (atk_coord_type) {
      case ATK_XY_WINDOW:
        return point + GetParentFrameOriginInScreenCoordinates();
@@ -923,9 +915,9 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
      case ATK_XY_SCREEN:
      default:
        return point;
-diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_auralinux.h.me chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_auralinux.h
---- chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_auralinux.h.me	2024-09-18 19:26:54.167348688 +0200
-+++ chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_auralinux.h	2024-09-18 19:28:06.220700493 +0200
+diff -up chromium-133.0.6943.35/ui/accessibility/platform/ax_platform_node_auralinux.h.el8-atk-compiler-error chromium-133.0.6943.35/ui/accessibility/platform/ax_platform_node_auralinux.h
+--- chromium-133.0.6943.35/ui/accessibility/platform/ax_platform_node_auralinux.h.el8-atk-compiler-error	2025-01-28 23:03:27.000000000 +0100
++++ chromium-133.0.6943.35/ui/accessibility/platform/ax_platform_node_auralinux.h	2025-02-04 10:56:08.439126973 +0100
 @@ -52,6 +52,31 @@ struct FindInPageResultInfo {
    }
  };
@@ -958,18 +950,18 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
  // This class with an enum is used to generate a bitmask which tracks the ATK
  // interfaces that an AXPlatformNodeAuraLinux's ATKObject implements.
  class ImplementedAtkInterfaces {
-diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_auralinux_unittest.cc.me chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_auralinux_unittest.cc
---- chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_auralinux_unittest.cc.me	2024-09-18 19:27:10.728659400 +0200
-+++ chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_auralinux_unittest.cc	2024-09-18 19:28:06.221700512 +0200
-@@ -8,6 +8,7 @@
- #endif
+diff -up chromium-133.0.6943.35/ui/accessibility/platform/ax_platform_node_auralinux_unittest.cc.el8-atk-compiler-error chromium-133.0.6943.35/ui/accessibility/platform/ax_platform_node_auralinux_unittest.cc
+--- chromium-133.0.6943.35/ui/accessibility/platform/ax_platform_node_auralinux_unittest.cc.el8-atk-compiler-error	2025-01-28 23:03:27.000000000 +0100
++++ chromium-133.0.6943.35/ui/accessibility/platform/ax_platform_node_auralinux_unittest.cc	2025-02-04 12:06:15.819918562 +0100
+@@ -11,6 +11,7 @@
  
  #include <atk/atk.h>
+ 
 +#include <dlfcn.h>
+ #include <array>
  #include <utility>
  #include <vector>
- 
-@@ -884,6 +885,17 @@ typedef bool (*ScrollToPointFunc)(AtkCom
+@@ -887,6 +888,17 @@ typedef bool (*ScrollToPointFunc)(AtkCom
  typedef bool (*ScrollToFunc)(AtkComponent* component, AtkScrollType type);
  
  TEST_F(AXPlatformNodeAuraLinuxTest, AtkComponentScrollToPoint) {
@@ -987,7 +979,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
    AXNodeData root;
    root.id = 1;
    root.role = ax::mojom::Role::kRootWebArea;
-@@ -911,8 +923,7 @@ TEST_F(AXPlatformNodeAuraLinuxTest, AtkC
+@@ -914,8 +926,7 @@ TEST_F(AXPlatformNodeAuraLinuxTest, AtkC
    EXPECT_EQ(10, width);
    EXPECT_EQ(10, height);
  
@@ -997,7 +989,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
    atk_component_get_extents(ATK_COMPONENT(child_obj), &x_left, &y_top, &width,
                              &height, ATK_XY_SCREEN);
    EXPECT_EQ(610, x_left);
-@@ -920,8 +931,7 @@ TEST_F(AXPlatformNodeAuraLinuxTest, AtkC
+@@ -923,8 +934,7 @@ TEST_F(AXPlatformNodeAuraLinuxTest, AtkC
    EXPECT_EQ(10, width);
    EXPECT_EQ(10, height);
  
@@ -1007,7 +999,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
    atk_component_get_extents(ATK_COMPONENT(child_obj), &x_left, &y_top, &width,
                              &height, ATK_XY_SCREEN);
    // The test wrapper scrolls every element when scrolling, so this should be
-@@ -938,6 +948,17 @@ TEST_F(AXPlatformNodeAuraLinuxTest, AtkC
+@@ -941,6 +951,17 @@ TEST_F(AXPlatformNodeAuraLinuxTest, AtkC
  }
  
  TEST_F(AXPlatformNodeAuraLinuxTest, AtkComponentScrollTo) {
@@ -1025,7 +1017,7 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
    AXNodeData root;
    root.id = 1;
    root.role = ax::mojom::Role::kRootWebArea;
-@@ -965,7 +986,7 @@ TEST_F(AXPlatformNodeAuraLinuxTest, AtkC
+@@ -968,7 +989,7 @@ TEST_F(AXPlatformNodeAuraLinuxTest, AtkC
    EXPECT_EQ(10, width);
    EXPECT_EQ(10, height);
  
@@ -1034,9 +1026,9 @@ diff -up chromium-129.0.6668.58/ui/accessibility/platform/ax_platform_node_aural
    atk_component_get_extents(ATK_COMPONENT(child_obj), &x_left, &y_top, &width,
                              &height, ATK_XY_SCREEN);
    EXPECT_EQ(0, x_left);
-diff -up chromium-129.0.6668.58/ui/accessibility/platform/inspect/ax_tree_formatter_auralinux.cc.me chromium-129.0.6668.58/ui/accessibility/platform/inspect/ax_tree_formatter_auralinux.cc
---- chromium-129.0.6668.58/ui/accessibility/platform/inspect/ax_tree_formatter_auralinux.cc.me	2024-09-18 19:27:20.965851455 +0200
-+++ chromium-129.0.6668.58/ui/accessibility/platform/inspect/ax_tree_formatter_auralinux.cc	2024-09-18 19:28:06.221700512 +0200
+diff -up chromium-133.0.6943.35/ui/accessibility/platform/inspect/ax_tree_formatter_auralinux.cc.el8-atk-compiler-error chromium-133.0.6943.35/ui/accessibility/platform/inspect/ax_tree_formatter_auralinux.cc
+--- chromium-133.0.6943.35/ui/accessibility/platform/inspect/ax_tree_formatter_auralinux.cc.el8-atk-compiler-error	2025-01-28 23:03:27.000000000 +0100
++++ chromium-133.0.6943.35/ui/accessibility/platform/inspect/ax_tree_formatter_auralinux.cc	2025-02-04 10:56:08.464127592 +0100
 @@ -474,18 +474,34 @@ void AXTreeFormatterAuraLinux::AddTableC
    int row = 0, col = 0, row_span = 0, col_span = 0;
    int n_row_headers = 0, n_column_headers = 0;

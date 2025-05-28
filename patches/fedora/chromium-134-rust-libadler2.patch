@@ -1,0 +1,14 @@
+Fix warning: libadler2 not found
+
+diff -up chromium-134.0.6998.23/build/rust/std/BUILD.gn.than chromium-134.0.6998.23/build/rust/std/BUILD.gn
+--- chromium-134.0.6998.23/build/rust/std/BUILD.gn.than	2025-02-24 09:47:57.560506410 +0100
++++ chromium-134.0.6998.23/build/rust/std/BUILD.gn	2025-02-24 09:48:02.335676712 +0100
+@@ -89,7 +89,7 @@ if (toolchain_has_rust) {
+     # These are no longer present in the Windows toolchain.
+     stdlib_files += [
+       "addr2line",
+-      "adler2",
++      "adler",
+       "gimli",
+       "libc",
+       "memchr",

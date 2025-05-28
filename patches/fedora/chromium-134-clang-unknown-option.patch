@@ -1,0 +1,14 @@
+Fix warning: unknown warning option '-Wno-nontrivial-memcall'
+
+diff -up chromium-134.0.6998.23/build/config/compiler/BUILD.gn.than chromium-134.0.6998.23/build/config/compiler/BUILD.gn
+--- chromium-134.0.6998.23/build/config/compiler/BUILD.gn.than	2025-02-24 09:59:50.096821901 +0100
++++ chromium-134.0.6998.23/build/config/compiler/BUILD.gn	2025-02-24 10:01:12.160253620 +0100
+@@ -1982,7 +1982,7 @@ config("default_warnings") {
+         cflags_cc += [ "-Wno-missing-template-arg-list-after-template-kw" ]
+ 
+         # TODO(crbug.com/376641662): Fix and re-enable.
+-        cflags += [ "-Wno-nontrivial-memcall" ]
++        # cflags += [ "-Wno-nontrivial-memcall" ]
+       }
+     }
+ 

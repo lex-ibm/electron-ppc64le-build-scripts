@@ -1,0 +1,13 @@
+diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
+index f866f10273aba..10012fdadfd7f 100644
+--- a/build/config/compiler/BUILD.gn
++++ b/build/config/compiler/BUILD.gn
+@@ -1965,7 +1965,7 @@ config("default_warnings") {
+         ]
+ 
+         # TODO(crbug.com/344680447): Fix and re-enable.
+-        cflags_cc += [ "-Wno-missing-template-arg-list-after-template-kw" ]
++        # cflags_cc += [ "-Wno-missing-template-arg-list-after-template-kw" ]
+ 
+         # TODO(crbug.com/376641662): Fix and re-enable.
+         # cflags += [ "-Wno-nontrivial-memcall" ]
