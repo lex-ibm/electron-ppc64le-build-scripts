@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CHROMIUM_VERSION=${1:-134}
+CHROMIUM_VERSION=${1:-138}
 
 download_url="https://gitlab.raptorengineering.com/raptor-engineering-public/chromium/openpower-patches/-/archive/chromium-${CHROMIUM_VERSION}/openpower-patches-chromium-${CHROMIUM_VERSION}.tar.gz?path=patches"
 

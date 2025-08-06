@@ -111,6 +111,7 @@ RUN pip-3.9 install httplib2 && \
 RUN --mount=type=bind,source=patches/fix-depot-tools.patch,dst=/tmp/fix-depot-tools.patch \
     git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git /opt/depot_tools && \
     cd /opt/depot_tools && \
+    git checkout cb4b983398e819aa6f7342bcfa84ff3ea265c8f8 && \
     patch -p1 -i /tmp/fix-depot-tools.patch
 
 RUN --mount=type=bind,source=patches/fix-gn.patch,dst=/tmp/fix-gn.patch \

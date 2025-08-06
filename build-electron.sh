@@ -2,7 +2,7 @@
 # -----------------------------------------------------------------------------
 #
 # Package         : Electron
-# Version         : 35.4.0
+# Version         : 37.2.3
 # Source repo     : https://github.com/electron/electron
 # Tested on       : RHEL 8.10
 # Language        : C++
@@ -20,7 +20,7 @@
 
 # shellcheck disable=SC2034
 PACKAGE_NAME="electron"
-PACKAGE_VERSION=${1:-"v35.4.0"}
+PACKAGE_VERSION=${1:-"v37.2.3"}
 PACKAGE_URL="https://github.com/electron/electron"
 
 set -eux
@@ -61,7 +61,7 @@ ELECTRON_GN_DEFINES+=' chrome_pgo_phase=0'
 
 ELECTRON_GN_DEFINES+=' is_clang=true'
 ELECTRON_GN_DEFINES+=" clang_base_path=\"$clang_base_path\""
-ELECTRON_GN_DEFINES+=" clang_version=\"$clang_version\""
+ELECTRON_GN_DEFINES+=" clang_version=$clang_version"
 ELECTRON_GN_DEFINES+=' clang_use_chrome_plugins=false'
 ELECTRON_GN_DEFINES+=' use_lld=true'
 
@@ -80,6 +80,8 @@ fi
 ELECTRON_GN_DEFINES+=' treat_warnings_as_errors=false'
 ELECTRON_GN_DEFINES+=' use_gnome_keyring=false'
 # ELECTRON_GN_DEFINES+=' use_system_libffi=true' # Containerfile has libffi_pic.a 3.4.4
+
+ELECTRON_GN_DEFINES+=' clang_warning_suppression_file=""'
 
 # Create git cache directory if not already present
 if [ ! -d "${GIT_CACHE_PATH}" ]; then
@@ -122,7 +124,7 @@ fi
 # to have the patches in the same repository for better control/visibility.
 while IFS= read -r patch; do
   if [[ $patch =~ ^ppc64le ]]; then
-    git apply "${patches_dir}/openpower-patches/${patch}"
+    patch -p1 < "${patches_dir}/openpower-patches/${patch}"
   fi
 done <"${patches_dir}"/openpower-patches/series
 
@@ -132,33 +134,33 @@ patch -p1 < "${patches_dir}"/fedora/chromium-117-widevine-other-locations.patch 
 patch -p1 < "${patches_dir}"/fedora/chromium-disable-font-tests.patch # Patch20 P20
 patch -p1 < "${patches_dir}"/fedora/chromium-123-screen-ai-service.patch # Patch21 P21
 patch -p1 < "${patches_dir}"/fedora/chromium-98.0.4758.102-remoting-no-tests.patch # Patch82 P82
-patch -p1 < "${patches_dir}"/fedora/chromium-118-dma_buf_export_sync_file-conflict.patch # Patch141 P141
-patch -p1 < "${patches_dir}"/fedora/chromium-124-qt6.patch # Patch150 P150
+patch -p1 < "${patches_dir}"/fedora/chromium-138-checkversion-nodejs.patch # Patch92 P92
 patch -p1 < "${patches_dir}"/fedora/chromium-107-proprietary-codecs.patch # Patch131 P131
 patch -p1 < "${patches_dir}"/fedora/chromium-118-sigtrap_system_ffmpeg.patch # Patch132 P132
 patch -p1 < "${patches_dir}"/fedora/chromium-121-system-old-ffmpeg.patch # Patch133 P133
 patch -p1 < "${patches_dir}"/fedora/chromium-133-disable-H.264-video-parser-during-demuxing.patch # Patch135 P135
 patch -p1 < "${patches_dir}"/fedora/chromium-133-workaround-system-ffmpeg-whitelist.patch # Patch136 P136
-# patch -p1 < "${patches_dir}"/fedora/chromium-131-revert-decommit-pooled-pages-by-default.patch # Patch300 P300 # Applied already
-patch -p1 < "${patches_dir}"/fedora/chromium-133-el8-atk-compiler-error.patch # Patch307 P307
-patch -p1 < "${patches_dir}"/fedora/chromium-132-el8-unsupport-clang-flags.patch # Patch308 P308
+patch -p1 < "${patches_dir}"/fedora/chromium-118-dma_buf_export_sync_file-conflict.patch # Patch141 P141
+patch -p1 < "${patches_dir}"/fedora/chromium-124-qt6.patch # Patch150 P150
+patch -p1 < "${patches_dir}"/fedora/chromium-134-el8-atk-compiler-error.patch # Patch307 P307
+patch -p1 < "${patches_dir}"/fedora/chromium-136-unsupport-clang-flags.patch # Patch308 P308
 patch -p1 < "${patches_dir}"/fedora/chromium-132-el8-unsupport-rustc-flags.patch # Patch309 P309
-patch -p1 < "${patches_dir}"/fedora/chromium-132-el8-clang18-build-error.patch # Patch310 P310
-patch -p1 < "${patches_dir}"/fedora/chromium-133-clang18-template.patch # Patch311 P311
+patch -p1 < "${patches_dir}"/fedora/chromium-136-rust-skrifa-build-error.patch # Patch314 P314
 patch -p1 < "${patches_dir}"/fedora/chromium-123-fstack-protector-strong.patch # Patch312 P312
-patch -p1 < "${patches_dir}"/fedora/chromium-134-clang-unknown-option.patch # Patch314 P314
 patch -p1 < "${patches_dir}"/fedora/chromium-134-rust-libadler2.patch # Patch315 P315
-patch -p1 < "${patches_dir}"/fedora/chromium-122-clang-build-flags.patch # Patch316 P316
 patch -p1 < "${patches_dir}"/fedora/chromium-126-split-threshold-for-reg-with-hint.patch # Patch354 P354
+patch -p1 < "${patches_dir}"/fedora/chromium-122-clang-build-flags.patch # Patch316 P316
+patch -p1 < "${patches_dir}"/fedora/chromium-138-clang++-unknown-argument.patch # Patch317 P317
 patch -p1 < "${patches_dir}"/fedora/chromium-130-hardware_destructive_interference_size.patch # Patch355 P355
-patch -p1 < "${patches_dir}"/fedora/chromium-127-rust-clanglib.patch # Patch358 P358
+patch -p1 < "${patches_dir}"/fedora/chromium-134-type-mismatch-error.patch # Patch357 P357
+patch -p1 < "${patches_dir}"/fedora/chromium-135-rust-clanglib.patch # Patch358 P358
 patch -p1 < "${patches_dir}"/fedora/0001-swiftshader-fix-build.patch # Patch383 P383
 
 # Electron PowerPC64 Little Endian support
-patch -p1 < "${patches_dir}"/electron-32-001-fix-runtime-api-delegate.patch
 patch -p1 < "${patches_dir}"/electron-32-002-fix-ppc64-syscalls-headers.patch
 patch -p1 < "${patches_dir}"/electron-32-004-libpng.patch
 patch -p1 < "${patches_dir}"/electron-35-001-remove-warnings.patch
+patch -p1 < "${patches_dir}"/electron-37-001-fix-runtime-api-delegate.patch
 
 # Build
 cd "${electron_src}"
@@ -209,9 +211,10 @@ ninja -j "$(nproc)" -C "${electron_out}" electron:licenses
 ninja -j "$(nproc)" -C "${electron_out}" electron:electron_version_file
 DELETE_DSYMS_AFTER_ZIP=1 electron/script/zip-symbols.py -b "${electron_out}"
 
-# Generate FFMpeg
-gn gen "${electron_out}/../ffmpeg" --args="import(\"//electron/build/args/ffmpeg.gn\") ${ELECTRON_GN_DEFINES}"
-ninja -j "$(nproc)" -C "${electron_out}/../ffmpeg" electron:electron_ffmpeg_zip
+# ToDo: Something is failing in this step. Skipping until fixed
+# # Generate FFMpeg
+# gn gen "${electron_out}/../ffmpeg" --args="import(\"//electron/build/args/ffmpeg.gn\") ${ELECTRON_GN_DEFINES}"
+# ninja -j "$(nproc)" -C "${electron_out}/../ffmpeg" electron:electron_ffmpeg_zip
 
 # Generate Hunspell Dictionaries
 ninja -j "$(nproc)" -C "${electron_out}" electron:hunspell_dictionaries_zip
@@ -236,7 +239,7 @@ cp debug.zip "${assets_dir}/electron-${PACKAGE_VERSION}-linux-ppc64le-debug.zip"
 cp symbols.zip "${assets_dir}/electron-${PACKAGE_VERSION}-linux-ppc64le-symbols.zip"
 cp dist.zip "${assets_dir}/electron-${PACKAGE_VERSION}-linux-ppc64le.zip"
 cp ./gen/electron/tsc/typings/electron.d.ts "${assets_dir}/electron.d.ts"
-cp ../ffmpeg/ffmpeg.zip "${assets_dir}/ffmpeg-${PACKAGE_VERSION}-linux-ppc64le.zip"
+# cp ../ffmpeg/ffmpeg.zip "${assets_dir}/ffmpeg-${PACKAGE_VERSION}-linux-ppc64le.zip"
 cp hunspell_dictionaries.zip "${assets_dir}/hunspell_dictionaries.zip"
 cp libcxx_objects.zip "${assets_dir}/libcxx-objects-${PACKAGE_VERSION}-linux-ppc64le.zip"
 cp libcxx_headers.zip "${assets_dir}/libcxx_headers.zip"

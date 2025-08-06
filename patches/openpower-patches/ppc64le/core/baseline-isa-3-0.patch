@@ -1,20 +1,20 @@
-Index: chromium-134.0.6998.35/build/config/compiler/BUILD.gn
+Index: chromium-138.0.7204.49/build/config/compiler/BUILD.gn
 ===================================================================
---- chromium-134.0.6998.35.orig/build/config/compiler/BUILD.gn
-+++ chromium-134.0.6998.35/build/config/compiler/BUILD.gn
-@@ -1490,7 +1490,7 @@ config("compiler_cpu_abi") {
-         cflags += [ "-maix64" ]
-         ldflags += [ "-maix64" ]
+--- chromium-138.0.7204.49.orig/build/config/compiler/BUILD.gn
++++ chromium-138.0.7204.49/build/config/compiler/BUILD.gn
+@@ -1521,7 +1521,7 @@ config("compiler_cpu_abi") {
+         cflags += [ "--target=powerpc64le-unknown-linux-gnu" ]
+         ldflags += [ "--target=powerpc64le-unknown-linux-gnu" ]
        } else {
 -        cflags += [ "-m64" ]
 +        cflags += [ "-m64", "-mcpu=power9", "-mtune=power9" ]
          ldflags += [ "-m64" ]
        }
      } else if (current_cpu == "riscv64") {
-Index: chromium-134.0.6998.35/third_party/libvpx/BUILD.gn
+Index: chromium-138.0.7204.49/third_party/libvpx/BUILD.gn
 ===================================================================
---- chromium-134.0.6998.35.orig/third_party/libvpx/BUILD.gn
-+++ chromium-134.0.6998.35/third_party/libvpx/BUILD.gn
+--- chromium-138.0.7204.49.orig/third_party/libvpx/BUILD.gn
++++ chromium-138.0.7204.49/third_party/libvpx/BUILD.gn
 @@ -105,7 +105,7 @@ config("libvpx_config") {
  
    if (current_cpu == "ppc64") {
@@ -24,11 +24,11 @@ Index: chromium-134.0.6998.35/third_party/libvpx/BUILD.gn
        "-maltivec",
        "-mvsx",
      ]
-Index: chromium-134.0.6998.35/v8/BUILD.gn
+Index: chromium-138.0.7204.49/v8/BUILD.gn
 ===================================================================
---- chromium-134.0.6998.35.orig/v8/BUILD.gn
-+++ chromium-134.0.6998.35/v8/BUILD.gn
-@@ -1509,7 +1509,7 @@ config("toolchain") {
+--- chromium-138.0.7204.49.orig/v8/BUILD.gn
++++ chromium-138.0.7204.49/v8/BUILD.gn
+@@ -1579,7 +1579,7 @@ config("toolchain") {
      if (current_os == "linux") {
          cflags += [
          # Enable usage of AltiVec, VSX, and other POWER8 and higher features
