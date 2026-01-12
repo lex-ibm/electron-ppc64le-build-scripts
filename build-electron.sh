@@ -21,6 +21,7 @@
 # shellcheck disable=SC2034
 PACKAGE_NAME="electron"
 PACKAGE_VERSION=${1:-"v39.2.7"}
+PACKAGE_URL="https://github.com/electron/electron"
 
 set -eux
 
