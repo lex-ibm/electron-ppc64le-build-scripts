@@ -2,7 +2,7 @@
 # -----------------------------------------------------------------------------
 #
 # Package         : Electron
-# Version         : 37.2.3
+# Version         : 39.2.7
 # Source repo     : https://github.com/electron/electron
 # Tested on       : RHEL 8.10
 # Language        : C++
@@ -20,26 +20,16 @@
 
 # shellcheck disable=SC2034
 PACKAGE_NAME="electron"
-PACKAGE_VERSION=${1:-"v37.2.3"}
-PACKAGE_URL="https://github.com/electron/electron"
+PACKAGE_VERSION=${1:-"v39.2.7"}
 
 set -eux
-
-# Export variables
-export CC=clang
-export CXX=clang++
-export AR=llvm-ar
-export NM=llvm-nm
-export READELF=llvm-readelf
 
 build_dir="${BUILD_DIRECTORY:-"${PWD}/build"}"
 patches_dir="${PWD}/patches"
 electron_src="${build_dir}/src"
 electron_out="${electron_src}/out/Default"
+export ELECTRON_OUT_DIR="Default"
 assets_dir="${PWD}/assets"
-
-CXXFLAGS+=' -faltivec-src-compat=mixed -Wno-deprecated-altivec-src-compat'
-export CXXFLAGS
 
 export DEPOT_TOOLS_UPDATE=0
 export VPYTHON_BYPASS="manually managed python not supported by chrome operations"
@@ -79,7 +69,6 @@ fi
 
 ELECTRON_GN_DEFINES+=' treat_warnings_as_errors=false'
 ELECTRON_GN_DEFINES+=' use_gnome_keyring=false'
-# ELECTRON_GN_DEFINES+=' use_system_libffi=true' # Containerfile has libffi_pic.a 3.4.4
 
 ELECTRON_GN_DEFINES+=' clang_warning_suppression_file=""'
 
@@ -103,7 +92,7 @@ if [ ! -d "${build_dir}" ]; then
 fi
 cd "${build_dir}"
 
-gclient config --name src/electron --unmanaged "${PACKAGE_URL}@${PACKAGE_VERSION}"
+gclient config --name src/electron --unmanaged "${PACKAGE_URL}@${PACKAGE_VERSION}" --custom-var checkout_pgo_profiles=False
 gclient sync --with_branch_heads --with_tags -vv
 
 cd "${electron_src}"
@@ -135,32 +124,54 @@ patch -p1 < "${patches_dir}"/fedora/chromium-disable-font-tests.patch # Patch20 
 patch -p1 < "${patches_dir}"/fedora/chromium-123-screen-ai-service.patch # Patch21 P21
 patch -p1 < "${patches_dir}"/fedora/chromium-98.0.4758.102-remoting-no-tests.patch # Patch82 P82
 patch -p1 < "${patches_dir}"/fedora/chromium-138-checkversion-nodejs.patch # Patch92 P92
+patch -p1 < "${patches_dir}"/fedora/chromium-141-csss_style_sheet.patch # Patch93 P93
+patch -Rp1 < "${patches_dir}"/fedora/chromium-141-revert-remove-darkmode-image-policy.patch # Patch94 P94 (reverse apply)
+patch -p1 < "${patches_dir}"/fedora/chromium-142-crabbyavif-ftbfs-old-rust.patch # Patch96 P96
+patch -p1 < "${patches_dir}"/fedora/chromium-141-glibc-2.42-SYS_SECCOMP.patch # Patch97 P97
 patch -p1 < "${patches_dir}"/fedora/chromium-107-proprietary-codecs.patch # Patch131 P131
 patch -p1 < "${patches_dir}"/fedora/chromium-118-sigtrap_system_ffmpeg.patch # Patch132 P132
-patch -p1 < "${patches_dir}"/fedora/chromium-121-system-old-ffmpeg.patch # Patch133 P133
+patch -p1 < "${patches_dir}"/fedora/chromium-142-el9-ffmpeg-5.1.x.patch # Patch133 P133
 patch -p1 < "${patches_dir}"/fedora/chromium-133-disable-H.264-video-parser-during-demuxing.patch # Patch135 P135
 patch -p1 < "${patches_dir}"/fedora/chromium-133-workaround-system-ffmpeg-whitelist.patch # Patch136 P136
 patch -p1 < "${patches_dir}"/fedora/chromium-118-dma_buf_export_sync_file-conflict.patch # Patch141 P141
+patch -p1 < "${patches_dir}"/fedora/chromium-142-python-3.9-ftbfs.patch # Patch142 P142
 patch -p1 < "${patches_dir}"/fedora/chromium-124-qt6.patch # Patch150 P150
 patch -p1 < "${patches_dir}"/fedora/chromium-134-el8-atk-compiler-error.patch # Patch307 P307
-patch -p1 < "${patches_dir}"/fedora/chromium-136-unsupport-clang-flags.patch # Patch308 P308
 patch -p1 < "${patches_dir}"/fedora/chromium-132-el8-unsupport-rustc-flags.patch # Patch309 P309
-patch -p1 < "${patches_dir}"/fedora/chromium-136-rust-skrifa-build-error.patch # Patch314 P314
-patch -p1 < "${patches_dir}"/fedora/chromium-123-fstack-protector-strong.patch # Patch312 P312
-patch -p1 < "${patches_dir}"/fedora/chromium-134-rust-libadler2.patch # Patch315 P315
-patch -p1 < "${patches_dir}"/fedora/chromium-126-split-threshold-for-reg-with-hint.patch # Patch354 P354
+patch -p1 < "${patches_dir}"/fedora/chromium-139-rust-FTBFS-suppress-warnings.patch # Patch310 P310
+patch -p1 < "${patches_dir}"/fedora/chromium-123-fstack-protector-strong.patch # Patch311 P311
+patch -p1 < "${patches_dir}"/fedora/chromium-142-el9-rust-no-alloc-shim-is-unstable.patch # Patch312 P312
+patch -p1 < "${patches_dir}"/fedora/chromium-142-el9-rust_alloc_error_handler_should_panic.patch # Patch313 P313
 patch -p1 < "${patches_dir}"/fedora/chromium-122-clang-build-flags.patch # Patch316 P316
-patch -p1 < "${patches_dir}"/fedora/chromium-138-clang++-unknown-argument.patch # Patch317 P317
+patch -p1 < "${patches_dir}"/fedora/chromium-142-clang++-unknown-argument.patch # Patch317 P317
+patch -p1 < "${patches_dir}"/fedora/memory-allocator-dcheck-assert-fix.patch # Patch318 P318
+patch -p1 < "${patches_dir}"/fedora/chromium-142-split-threshold-for-reg-with-hint.patch # Patch354 P354
 patch -p1 < "${patches_dir}"/fedora/chromium-130-hardware_destructive_interference_size.patch # Patch355 P355
+patch -p1 < "${patches_dir}"/fedora/chromium-141-use_libcxx_modules.patch # Patch356 P356
 patch -p1 < "${patches_dir}"/fedora/chromium-134-type-mismatch-error.patch # Patch357 P357
-patch -p1 < "${patches_dir}"/fedora/chromium-135-rust-clanglib.patch # Patch358 P358
+patch -p1 < "${patches_dir}"/fedora/chromium-141-rust-clanglib.patch # Patch358 P358
 patch -p1 < "${patches_dir}"/fedora/0001-swiftshader-fix-build.patch # Patch383 P383
+patch -p1 < "${patches_dir}"/fedora/fix-page-allocator-overflow.patch # Patch409 P409
+patch -p1 < "${patches_dir}"/fedora/chromium-142-missing-include-for-form_field_data.patch # Patch1000 P1000
+patch -p1 < "${patches_dir}"/fedora/chromium-142-Add-ExtractData-support-for-text-uri-list.patch # Patch1001 P1001
+patch -p1 < "${patches_dir}"/fedora/chromium-142-Update-pointer-position-during-draggin.patch # Patch1002 P1002
 
 # Electron PowerPC64 Little Endian support
 patch -p1 < "${patches_dir}"/electron-32-002-fix-ppc64-syscalls-headers.patch
 patch -p1 < "${patches_dir}"/electron-32-004-libpng.patch
-patch -p1 < "${patches_dir}"/electron-35-001-remove-warnings.patch
-patch -p1 < "${patches_dir}"/electron-37-001-fix-runtime-api-delegate.patch
+patch -p1 < "${patches_dir}"/electron-39-001-fix-runtime-api-delegate.patch
+patch -p1 < "${patches_dir}"/electron-39-001-fix-fontconfig.patch
+patch -p1 < "${patches_dir}"/electron-39-001-fix-webrtc.patch
+
+# Export variables
+export CC=clang
+export CXX=clang++
+export AR=llvm-ar
+export NM=llvm-nm
+export READELF=llvm-readelf
+
+CXXFLAGS+=' -faltivec-src-compat=mixed -Wno-deprecated-altivec-src-compat'
+export CXXFLAGS
 
 # Build
 cd "${electron_src}"
@@ -168,47 +179,28 @@ cd "${electron_src}"
 cp "$(command -v node)" third_party/node/linux/node-linux-x64/bin/node
 chmod +x third_party/node/linux/node-linux-x64/bin/node
 
-rm -rf buildtools/third_party/eu-strip/bin/eu-strip
-cp "$(command -v eu-strip)" buildtools/third_party/eu-strip/bin/eu-strip
+rm -rf third_party/openscreen/src/buildtools/third_party/eu-strip/bin/eu-strip
+cp "$(command -v eu-strip)" third_party/openscreen/src/buildtools/third_party/eu-strip/bin/eu-strip
 
 gn gen "${electron_out}" --args="import(\"//electron/build/args/release.gn\") ${ELECTRON_GN_DEFINES}"
 
 # Build Electron
-ninja -j "$(nproc)" -C "${electron_out}" electron
-
-#Strip Electron Binaries
-electron/script/copy-debug-symbols.py --target-cpu="ppc64" --out-dir="${electron_out}/debug" --compress
-electron/script/strip-binaries.py --target-cpu="ppc64" --verbose
-electron/script/add-debug-link.py --target-cpu="ppc64" --debug-dir="${electron_out}/debug"
-
-# Build Electron dist.zip
-ninja -j "$(nproc)" -C "${electron_out}" electron:electron_dist_zip
-electron/script/zip_manifests/check-zip-manifest.py "${electron_out}/dist.zip" electron/script/zip_manifests/dist_zip.linux.x64.manifest # This works, so ¯\_(ツ)_/¯
+NINJA_SUMMARIZE_BUILD=1 ninja -j "$(nproc)" -C "${electron_out}" electron:release_build
+cp "${electron_out}/.ninja_log" "${electron_src}/out/electron_ninja_log"
+node electron/script/check-symlinks.js
 
 # Build Mksnapshot
-ninja -j "$(nproc)" -C "${electron_out}" electron:electron_mksnapshot
-gn desc "${electron_out}" v8:run_mksnapshot_default args > "${electron_out}/mksnapshot_args"
+ELECTRON_DEPOT_TOOLS_DISABLE_LOG=1 gn desc "${electron_out}" v8:run_mksnapshot_default args > "${electron_out}/mksnapshot_args"
 sed -i '/.*builtins-pgo/d' "${electron_out}/mksnapshot_args"
 sed -i '/--turbo-profiling-input/d' "${electron_out}/mksnapshot_args"
-electron/script/strip-binaries.py --file "${electron_out}/mksnapshot"
-electron/script/strip-binaries.py --file "${electron_out}/v8_context_snapshot_generator"
-ninja -j "$(nproc)" -C "${electron_out}" electron:electron_mksnapshot_zip
-cd "${electron_out}"
-zip mksnapshot.zip mksnapshot_args gen/v8/embedded.S
+(cd "${electron_out}" && zip mksnapshot.zip mksnapshot_args gen/v8/embedded.S)
 
 cd "${electron_src}"
 
 # Build Chromedriver
-ninja -j "$(nproc)" -C "${electron_out}" electron:electron_chromedriver
-ninja -C "${electron_out}" electron:electron_chromedriver_zip
-
-# Build Node.js headers
-ELECTRON_OUT_DIR="$electron_out" ninja -j "$(nproc)" -C "${electron_out}" electron:node_headers
+ninja -j "$(nproc)" -C "${electron_out}" electron:electron_chromedriver_zip
 
 # Generate & Zip Symbols
-ninja -j "$(nproc)" -C "${electron_out}" electron:electron_symbols
-ninja -j "$(nproc)" -C "${electron_out}" electron:licenses
-ninja -j "$(nproc)" -C "${electron_out}" electron:electron_version_file
 DELETE_DSYMS_AFTER_ZIP=1 electron/script/zip-symbols.py -b "${electron_out}"
 
 # ToDo: Something is failing in this step. Skipping until fixed
@@ -216,17 +208,9 @@ DELETE_DSYMS_AFTER_ZIP=1 electron/script/zip-symbols.py -b "${electron_out}"
 # gn gen "${electron_out}/../ffmpeg" --args="import(\"//electron/build/args/ffmpeg.gn\") ${ELECTRON_GN_DEFINES}"
 # ninja -j "$(nproc)" -C "${electron_out}/../ffmpeg" electron:electron_ffmpeg_zip
 
-# Generate Hunspell Dictionaries
-ninja -j "$(nproc)" -C "${electron_out}" electron:hunspell_dictionaries_zip
-
-# Generate Libcxx
-ninja -j "$(nproc)" -C "${electron_out}" electron:libcxx_headers_zip
-ninja -j "$(nproc)" -C "${electron_out}" electron:libcxxabi_headers_zip
-ninja -j "$(nproc)" -C "${electron_out}" electron:libcxx_objects_zip
-
 # Generate TypeScript Definitions
 cd "${electron_src}"/electron
-node script/yarn create-typescript-definitions
+node script/yarn.js create-typescript-definitions
 
 # Move files to assets directory
 if [ ! -d "${assets_dir}" ]; then

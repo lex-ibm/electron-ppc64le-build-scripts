@@ -1,0 +1,36 @@
+# crypto: fix missing OPENSSL_NO_ENGINE guard
+# PR-URL: https://github.com/nodejs/node/pull/57012
+# Reviewed-By: Richard Lau <rlau@redhat.com>
+# Reviewed-By: Joyee Cheung <joyeec9h3@gmail.com>
+# Reviewed-By: Luigi Pinca <luigipinca@gmail.com>
+# Reviewed-By: James M Snell <jasnell@gmail.com>
+
+diff --git a/src/crypto/crypto_context.cc b/src/crypto/crypto_context.cc
+index abcdef1..2345678 100644
+--- a/src/crypto/crypto_context.cc
++++ b/src/crypto/crypto_context.cc
+@@ -34,7 +34,9 @@ using ncrypto::BIOPointer;
+ using ncrypto::ClearErrorOnReturn;
+ using ncrypto::CryptoErrorList;
+ using ncrypto::DHPointer;
++#ifndef OPENSSL_NO_ENGINE
+ using ncrypto::EnginePointer;
++#endif // !OPENSSL_NO_ENGINE
+ using ncrypto::EVPKeyPointer;
+ using ncrypto::MarkPopErrorOnReturn;
+ using ncrypto::SSLPointer;
+
+diff --git a/src/crypto/crypto_util.cc b/src/crypto/crypto_util.cc
+index 1234567..abcdef0 100644
+--- a/src/crypto/crypto_util.cc
++++ b/src/crypto/crypto_util.cc
+@@ -30,7 +30,9 @@ 
+ using ncrypto::BIOPointer;
+ using ncrypto::CryptoErrorList;
++#ifndef OPENSSL_NO_ENGINE
+ using ncrypto::EnginePointer;
++#endif // !OPENSSL_NO_ENGINE
+ using ncrypto::EVPKeyCtxPointer;
+ using v8::ArrayBuffer;
+ using v8::BackingStore;
+ using v8::BigInt;

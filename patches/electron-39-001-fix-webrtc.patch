@@ -1,0 +1,13 @@
+diff --git a/third_party/webrtc/rtc_base/platform_thread_types.cc b/third_party/webrtc/rtc_base/platform_thread_types.cc
+index 20bf4afc44..b749d5db46 100644
+--- a/third_party/webrtc/rtc_base/platform_thread_types.cc
++++ b/third_party/webrtc/rtc_base/platform_thread_types.cc
+@@ -17,7 +17,7 @@
+ #include <sys/syscall.h>
+ 
+ #if !defined(WEBRTC_ARCH_ARM) && !defined(WEBRTC_ARCH_ARM64)
+-#include <asm/unistd_64.h>
++// #include <asm/unistd_64.h>
+ #endif
+ #endif
+ 

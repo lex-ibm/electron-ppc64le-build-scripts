@@ -1,0 +1,13 @@
+diff -up chromium-141.0.7390.37/build/config/rust.gni.fix-rustc chromium-141.0.7390.37/build/config/rust.gni
+--- chromium-141.0.7390.37/build/config/rust.gni.fix-rustc	2025-09-23 22:21:14.000000000 +0200
++++ chromium-141.0.7390.37/build/config/rust.gni	2025-09-28 10:23:04.982735749 +0200
+@@ -179,6 +179,9 @@ rust_abi_target = ""
+ if (is_linux || is_chromeos) {
+   if (current_cpu == "arm64") {
+     rust_abi_target = "aarch64-unknown-linux-gnu"
++  } else if (current_cpu == "ppc64") {
++    rust_abi_target = "powerpc64le-unknown-linux-gnu"
++    cargo_target_abi = ""
+   } else if (current_cpu == "x86") {
+     rust_abi_target = "i686-unknown-linux-gnu"
+   } else if (current_cpu == "x64") {

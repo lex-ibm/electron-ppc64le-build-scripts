@@ -1,11 +1,11 @@
 diff --git a/sandbox/linux/system_headers/ppc64_linux_syscalls.h b/sandbox/linux/system_headers/ppc64_linux_syscalls.h
-index b6cbeec2d1e40..8375d1119b0d0 100644
+index b6cbeec2d1e40..b40f8ce2176c3 100644
 --- a/sandbox/linux/system_headers/ppc64_linux_syscalls.h
 +++ b/sandbox/linux/system_headers/ppc64_linux_syscalls.h
-@@ -22,4 +22,24 @@
+@@ -22,4 +22,56 @@
  #define __NR_shmat      397
  #endif
-
+ 
 +#if !defined(__NR_pidfd_open)
 +#define __NR_pidfd_open 434
 +#endif
@@ -28,6 +28,34 @@ index b6cbeec2d1e40..8375d1119b0d0 100644
 +
 +#if !defined(__NR_mseal)
 +#define __NR_mseal 462
++#endif
++
++#if !defined(__NR_semget)
++#define __NR_semget 64
++#endif
++
++#if !defined(__NR_semctl)
++#define __NR_semctl 66
++#endif
++
++#if !defined(__NR_msgget)
++#define __NR_msgget 68
++#endif
++
++#if !defined(__NR_msgsnd)
++#define __NR_msgsnd 69
++#endif
++
++#if !defined(__NR_msgrcv)
++#define __NR_msgrcv 70
++#endif
++
++#if !defined(__NR_msgctl)
++#define __NR_msgctl 71
++#endif
++
++#if !defined(__NR_semtimedop)
++#define __NR_semtimedop 220
 +#endif
 +
  #endif  // SANDBOX_LINUX_SYSTEM_HEADERS_PPC64_LINUX_SYSCALLS_H_
