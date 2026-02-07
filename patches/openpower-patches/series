@@ -1,27 +1,11 @@
 # POWER support
-ppc64le/sandbox/0001-linux-seccomp-bpf-ppc64-glibc-workaround-in-SIGSYS-h.patch
 ppc64le/sandbox/0001-sandbox-Enable-seccomp_bpf-for-ppc64.patch
-ppc64le/sandbox/0001-services-service_manager-sandbox-linux-Fix-TCGETS-de.patch
-ppc64le/sandbox/0001-sandbox-linux-bpf_dsl-Update-syscall-ranges-for-ppc6.patch
-ppc64le/sandbox/0001-sandbox-linux-Implement-partial-support-for-ppc64-sy.patch
-ppc64le/sandbox/0001-sandbox-linux-Update-IsSyscallAllowed-in-broker_proc.patch
-ppc64le/sandbox/0001-sandbox-linux-Update-syscall-helpers-lists-for-ppc64.patch
-ppc64le/sandbox/0002-sandbox-linux-bpf_dsl-Modify-seccomp_macros-to-add-s.patch
-ppc64le/sandbox/0003-sandbox-linux-system_headers-Update-linux-seccomp-he.patch
-ppc64le/sandbox/0004-sandbox-linux-system_headers-Update-linux-signal-hea.patch
-ppc64le/sandbox/0005-sandbox-linux-seccomp-bpf-Add-ppc64-syscall-stub.patch
-ppc64le/sandbox/0005-sandbox-linux-update-unit-test-for-ppc64.patch
-ppc64le/sandbox/0006-sandbox-linux-disable-timedwait-time64-ppc64.patch
-ppc64le/sandbox/0007-sandbox-linux-add-ppc64-stat.patch
-ppc64le/sandbox/Sandbox-linux-services-credentials.cc-PPC.patch
-ppc64le/sandbox/0008-sandbox-fix-ppc64le-glibc234.patch
 
 ppc64le/third_party/0001-third_party-angle-Include-missing-header-cstddef-in-.patch
 ppc64le/third_party/0001-Add-PPC64-support-for-boringssl.patch
 ppc64le/third_party/0001-third_party-libvpx-Properly-generate-gni-on-ppc64.patch
 ppc64le/third_party/0001-third_party-pffft-Include-altivec.h-on-ppc64-with-SI.patch
 ppc64le/third_party/0001-swiftshader-fix-build.patch
-ppc64le/third_party/0001-third-party-hwy-wrong-include.patch
 ppc64le/third_party/0002-Add-PPC64-generated-files-for-boringssl.patch
 ppc64le/third_party/0002-third_party-lss-kernel-structs.patch
 
@@ -44,9 +28,6 @@ ppc64le/third_party/0003-third_party-ffmpeg-Add-ppc64-generated-config.patch
 ppc64le/third_party/0004-third_party-libvpx-work-around-ambiguous-vsx.patch
 
 ppc64le/third_party/0001-add-xnn-ppc64el-support.patch
-# ppc64le/third_party/0002-regenerate-xnn-buildgn.patch
-
-ppc64le/third_party/0001-add-xnn-ppc64el-support.patch
 ppc64le/third_party/0002-regenerate-xnn-buildgn.patch
 
 # Enable VSX acceleration in Skia.  Requires POWER8 or higher.
@@ -63,8 +44,6 @@ ppc64le/fixes/fix-partition-alloc-compile.patch
 ppc64le/fixes/fix-different-data-layouts.patch
 ppc64le/v8/0001-Enable-ppc64-pointer-compression.patch
 ppc64le/v8/0002-Add-ppc64-trap-instructions.patch
-
-ppc64le/sandbox/fix-ppc64-linux-syscalls-headers.patch
 
 ppc64le/third_party/dawn-fix-ppc64le-detection.patch
 

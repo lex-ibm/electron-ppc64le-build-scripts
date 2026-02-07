@@ -1,0 +1,80 @@
+From 4aed3650884fb2eb5605a051e92387204ae88cad Mon Sep 17 00:00:00 2001
+From: LuK1337 <priv.luk@gmail.com>
+Date: Sun, 30 Nov 2025 20:36:28 -0800
+Subject: [PATCH] [ozone/wayland] Update pointer position during dragging
+
+Prior to this change, dragging a file from chrome://downloads by its
+filename would often open the file after it was dropped somewhere, this
+is because the synthetic mouse release has outdated location.
+
+After ensuring that pointer location is updated during drag motion,
+similarly to WaylandWindowDragController::OnDragLeave(), this is no
+longer a problem.
+
+Bug: 462468355
+Test: ozone_unittests
+Change-Id: Ib377b7ec04a9f5a02a21e36f7c43871a3e414798
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/7182320
+Reviewed-by: Peter McNeeley <petermcneeley@google.com>
+Commit-Queue: Peter McNeeley <petermcneeley@google.com>
+Auto-Submit: Łukasz Patron <priv.luk@gmail.com>
+Reviewed-by: Kramer Ge <fangzhoug@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1551919}
+---
+
+diff --git a/ui/ozone/platform/wayland/host/wayland_data_drag_controller.cc b/ui/ozone/platform/wayland/host/wayland_data_drag_controller.cc
+index b557e465..47b0911 100644
+--- a/ui/ozone/platform/wayland/host/wayland_data_drag_controller.cc
++++ b/ui/ozone/platform/wayland/host/wayland_data_drag_controller.cc
+@@ -486,17 +486,9 @@
+   if (drag_source_.has_value()) {
+     // Update the cursor position only for drag with mouse.
+     if (*drag_source_ == mojom::DragEventSource::kMouse) {
+-      auto* cursor_position = connection_->wayland_cursor_position();
+-      if (cursor_position) {
+-        CHECK(window_);
+-        // TODO(crbug.com/41494257): Once we enable the input region for
+-        // subsurfaces, we need to update this part since the location will no
+-        // longer be relative to the window.
+-        auto location_in_screen =
+-            gfx::ToRoundedPoint(location) +
+-            window_->GetBoundsInDIP().origin().OffsetFromOrigin();
+-        cursor_position->OnCursorPositionChanged(location_in_screen);
+-      }
++      pointer_delegate_->OnPointerMotionEvent(
++          location, timestamp, wl::EventDispatchPolicy::kImmediate,
++          /*is_synthesized=*/true);
+     }
+   }
+ 
+diff --git a/ui/ozone/platform/wayland/host/wayland_data_drag_controller.h b/ui/ozone/platform/wayland/host/wayland_data_drag_controller.h
+index e1239e6b..9a3ea8a2 100644
+--- a/ui/ozone/platform/wayland/host/wayland_data_drag_controller.h
++++ b/ui/ozone/platform/wayland/host/wayland_data_drag_controller.h
+@@ -130,6 +130,10 @@
+   // TODO(crbug.com/40598679): Remove once focus is fixed during DND sessions.
+   WaylandWindow* entered_window() const { return window_; }
+ 
++  WaylandPointer::Delegate* pointer_delegate() const {
++    return pointer_delegate_;
++  }
++
+   // Returns false iff the data is for a window dragging session.
+   bool ShouldReleaseCaptureForDrag(ui::OSExchangeData* data) const;
+ 
+diff --git a/ui/ozone/platform/wayland/host/wayland_data_drag_controller_unittest.cc b/ui/ozone/platform/wayland/host/wayland_data_drag_controller_unittest.cc
+index 4156ce4..d2a867acaf 100644
+--- a/ui/ozone/platform/wayland/host/wayland_data_drag_controller_unittest.cc
++++ b/ui/ozone/platform/wayland/host/wayland_data_drag_controller_unittest.cc
+@@ -1441,8 +1441,10 @@
+     // Send a drag motion and see if cursor position is updated.
+     SendDndMotion(gfx::Point(10, 11));
+     WaitForDragDropTasks();
+-    // Cursor position should be updated.
++    // Cursor and pointer positions should be updated.
++    auto* pointer_delegate = drag_controller()->pointer_delegate();
+     EXPECT_EQ(gfx::Point(10, 11), cursor_position->GetCursorSurfacePoint());
++    EXPECT_EQ(gfx::PointF(10, 11), pointer_delegate->GetPointerLocation());
+ 
+     SendDndLeave();
+     SendDndCancelled();

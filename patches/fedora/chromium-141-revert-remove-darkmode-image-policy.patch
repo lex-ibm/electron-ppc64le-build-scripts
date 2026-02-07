@@ -1,0 +1,145 @@
+Revert it due to incorrect display of links on startpage
+
+commit 8e24867a503c142393388f117df94bb9b7c4b597
+Author: Prashant Nevase <pnevase@microsoft.com>
+Date:   Mon Aug 18 10:26:18 2025 -0700
+
+    Remove dark mode kFilterNone image policy.
+    
+    This cl removes DarkModeImagePolicy::kFilterNone and virtual tests
+    related to it. DarkModeImagePolicy::kFilterSmart is used as default.
+    
+    Bug: 429404798
+    Change-Id: I5983aa8bca9ed4da110130f8bc49a184c7d339dc
+    Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/6810968
+    Commit-Queue: Prashant Nevase <pnevase@microsoft.com>
+    Reviewed-by: Philip Rogers <pdr@chromium.org>
+    Cr-Commit-Position: refs/heads/main@{#1502799}
+
+diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
+index d4ed3585d95..62f30a3103c 100644
+--- a/chrome/browser/about_flags.cc
++++ b/chrome/browser/about_flags.cc
+@@ -813,19 +813,16 @@ const FeatureEntry::Choice kSafetyHubUnifiedPasswordsModuleChoices[] = {
+ #if !BUILDFLAG(IS_CHROMEOS)
+ const FeatureEntry::FeatureParam kForceDark_SimpleHsl[] = {
+     {"inversion_method", "hsl_based"},
+-    {"image_behavior", "none"},
+     {"foreground_lightness_threshold", "150"},
+     {"background_lightness_threshold", "205"}};
+ 
+ const FeatureEntry::FeatureParam kForceDark_SimpleCielab[] = {
+     {"inversion_method", "cielab_based"},
+-    {"image_behavior", "none"},
+     {"foreground_lightness_threshold", "150"},
+     {"background_lightness_threshold", "205"}};
+ 
+ const FeatureEntry::FeatureParam kForceDark_SimpleRgb[] = {
+     {"inversion_method", "rgb_based"},
+-    {"image_behavior", "none"},
+     {"foreground_lightness_threshold", "150"},
+     {"background_lightness_threshold", "205"}};
+ 
+@@ -839,7 +836,6 @@ const FeatureEntry::FeatureParam kForceDark_SelectiveImageInversion[] = {
+ 
+ const FeatureEntry::FeatureParam kForceDark_SelectiveElementInversion[] = {
+     {"inversion_method", "cielab_based"},
+-    {"image_behavior", "none"},
+     {"foreground_lightness_threshold", "150"},
+     {"background_lightness_threshold", "205"}};
+ 
+diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
+index 14409e52162..0af032f4dbf 100644
+--- a/third_party/blink/common/features.cc
++++ b/third_party/blink/common/features.cc
+@@ -1036,7 +1036,6 @@ const base::FeatureParam<ForceDarkImageBehavior>::Option
+     forcedark_image_behavior_options[] = {
+         {ForceDarkImageBehavior::kUseBlinkSettings,
+          "use_blink_settings_for_images"},
+-        {ForceDarkImageBehavior::kInvertNone, "none"},
+         {ForceDarkImageBehavior::kInvertSelectively, "selective"}};
+ 
+ BASE_FEATURE_ENUM_PARAM(ForceDarkImageBehavior,
+diff --git a/third_party/blink/public/common/forcedark/forcedark_switches.h b/third_party/blink/public/common/forcedark/forcedark_switches.h
+index 9661628ce5c..ad606effc28 100644
+--- a/third_party/blink/public/common/forcedark/forcedark_switches.h
++++ b/third_party/blink/public/common/forcedark/forcedark_switches.h
+@@ -31,9 +31,6 @@ enum class ForceDarkImageBehavior {
+   // Same as ForceDarkInversionMethod::kUseBlinkSettings above.
+   kUseBlinkSettings,
+ 
+-  // Do not invert any images.
+-  kInvertNone,
+-
+   // Invert only some images. Images that act as icons or text should be
+   // inverted, but photos, avatars, etc. should not be.
+   kInvertSelectively
+diff --git a/third_party/blink/renderer/platform/graphics/dark_mode_filter.cc b/third_party/blink/renderer/platform/graphics/dark_mode_filter.cc
+index 1929af787b7..7cb0924924a 100644
+--- a/third_party/blink/renderer/platform/graphics/dark_mode_filter.cc
++++ b/third_party/blink/renderer/platform/graphics/dark_mode_filter.cc
+@@ -205,7 +205,6 @@ void DarkModeFilter::ApplyFilterToImage(Image* image,
+                                         const SkRect& src) {
+   DCHECK(image);
+   DCHECK(flags);
+-  DCHECK_NE(GetDarkModeImagePolicy(), DarkModeImagePolicy::kFilterNone);
+ 
+   // Raster-side dark mode path - Just set the dark mode on flags and dark
+   // mode will be applied at compositor side during rasterization.
+@@ -224,10 +223,6 @@ void DarkModeFilter::ApplyFilterToImage(Image* image,
+ }
+ 
+ bool DarkModeFilter::ShouldApplyFilterToImage(ImageType type) const {
+-  DarkModeImagePolicy image_policy = GetDarkModeImagePolicy();
+-  if (image_policy == DarkModeImagePolicy::kFilterNone)
+-    return false;
+-
+   // kIcon: Do not consider images being drawn into bigger rect as these
+   // images are not meant for icons or representing smaller widgets. These
+   // images are considered as photos which should be untouched.
+@@ -241,7 +236,6 @@ bool DarkModeFilter::ShouldApplyFilterToImage(ImageType type) const {
+ sk_sp<cc::ColorFilter> DarkModeFilter::GenerateImageFilter(
+     const SkPixmap& pixmap,
+     const SkIRect& src) const {
+-  DCHECK(immutable_.settings.image_policy == DarkModeImagePolicy::kFilterSmart);
+   DCHECK(immutable_.image_filter);
+ 
+   return (immutable_.image_classifier->Classify(pixmap, src) ==
+diff --git a/third_party/blink/renderer/platform/graphics/dark_mode_settings.h b/third_party/blink/renderer/platform/graphics/dark_mode_settings.h
+index 19b3796f457..bce2653148a 100644
+--- a/third_party/blink/renderer/platform/graphics/dark_mode_settings.h
++++ b/third_party/blink/renderer/platform/graphics/dark_mode_settings.h
+@@ -21,10 +21,9 @@ enum class DarkModeInversionAlgorithm {
+ // This enum will be removed soon to make dark mode simpler.
+ enum class DarkModeImagePolicy {
+   kFilterSmart,  // Apply dark-mode based on image content.
+-  kFilterNone,   // Never apply dark-mode filter to any images.
+ 
+   kFirst = kFilterSmart,  // First enum value.
+-  kLast = kFilterNone,    // Last enum value.
++  kLast = kFilterSmart,   // Last enum value.
+ };
+ 
+ enum class DarkModeImageClassifierPolicy {
+@@ -45,7 +44,7 @@ struct DarkModeSettings {
+   DarkModeInversionAlgorithm mode =
+       DarkModeInversionAlgorithm::kInvertLightnessLAB;
+   float contrast = 0.0;                 // Valid range from -1.0 to 1.0
+-  DarkModeImagePolicy image_policy = DarkModeImagePolicy::kFilterNone;
++  DarkModeImagePolicy image_policy = DarkModeImagePolicy::kFilterSmart;
+   DarkModeImageClassifierPolicy image_classifier_policy =
+       DarkModeImageClassifierPolicy::kNumColorsWithMlFallback;
+ 
+diff --git a/third_party/blink/renderer/platform/graphics/dark_mode_settings_builder.cc b/third_party/blink/renderer/platform/graphics/dark_mode_settings_builder.cc
+index 61498c0a809..318652cb2f2 100644
+--- a/third_party/blink/renderer/platform/graphics/dark_mode_settings_builder.cc
++++ b/third_party/blink/renderer/platform/graphics/dark_mode_settings_builder.cc
+@@ -115,8 +115,6 @@ DarkModeImagePolicy GetImagePolicy(const SwitchParams& switch_params) {
+     case ForceDarkImageBehavior::kUseBlinkSettings:
+       return GetIntegerSwitchParamValue<DarkModeImagePolicy>(
+           switch_params, "ImagePolicy", kDefaultDarkModeImagePolicy);
+-    case ForceDarkImageBehavior::kInvertNone:
+-      return DarkModeImagePolicy::kFilterNone;
+     case ForceDarkImageBehavior::kInvertSelectively:
+       return DarkModeImagePolicy::kFilterSmart;
+   }

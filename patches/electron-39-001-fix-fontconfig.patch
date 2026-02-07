@@ -1,0 +1,14 @@
+diff --git a/third_party/fontconfig/BUILD.gn b/third_party/fontconfig/BUILD.gn
+index f05dc95437983..be18f122fd564 100644
+--- a/third_party/fontconfig/BUILD.gn
++++ b/third_party/fontconfig/BUILD.gn
+@@ -27,7 +27,8 @@ if (use_bundled_fontconfig) {
+ 
+     bindgen_flags = [
+       "merge-extern-blocks",
+-      "allowlist-item=(FcPattern.*|FcRange.*|FcCharSet.*|FcLangSetFromCharSet|FC_.*_OBJECT)",
++      "allowlist-item=(FcPattern.*|FcRange.*|FcCharSet.*|FcLangSetFromCharSet)",
++      "allowlist-var=FC_.*_OBJECT",
+       "blocklist-type=(FcCharSet|FcLangSet)",
+       "raw-line=pub use fontconfig_bindings::FcCharSet; pub use fontconfig_bindings::FcLangSet;",
+     ]

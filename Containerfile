@@ -19,7 +19,9 @@ RUN git clone --depth 1 --branch v3.4.4 https://github.com/libffi/libffi.git /op
     rm -rf /opt/libffi-tmp
 
 # FROM quay.io/almalinuxorg/almalinux:8.10
-FROM registry.access.redhat.com/ubi8/ubi:8.10
+FROM registry.access.redhat.com/ubi8/nodejs-22:latest
+
+USER root
 
 RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm && \
     /usr/bin/crb enable && \
@@ -72,8 +74,8 @@ RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.n
                     libxshmfence-devel \
                     mesa-libGL-devel \
                     "pkgconfig(gtk+-3.0)" \
-                    /usr/bin/python3.9 \
-                    /usr/bin/pip-3.9 \
+                    /usr/bin/python3.12 \
+                    /usr/bin/pip-3.12 \
                     re2-devel \
                     speech-dispatcher-devel \
                     yasm \
@@ -104,15 +106,15 @@ RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.n
                     opus-devel \
                     zip
 
-RUN pip-3.9 install httplib2 && \
-    alternatives --set python /usr/bin/python3.9 && \
-    alternatives --set python3 /usr/bin/python3.9
+RUN pip-3.12 install 'httplib2===0.22.0' six && \
+    alternatives --set python /usr/bin/python3.12 && \
+    alternatives --set python3 /usr/bin/python3.12
 
 RUN --mount=type=bind,source=patches/fix-depot-tools.patch,dst=/tmp/fix-depot-tools.patch \
     git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git /opt/depot_tools && \
     cd /opt/depot_tools && \
-    git checkout cb4b983398e819aa6f7342bcfa84ff3ea265c8f8 && \
-    patch -p1 -i /tmp/fix-depot-tools.patch
+    patch -p1 -i /tmp/fix-depot-tools.patch && \
+    echo '../../usr/bin' > /opt/depot_tools/python3_bin_reldir.txt
 
 RUN --mount=type=bind,source=patches/fix-gn.patch,dst=/tmp/fix-gn.patch \
     git clone https://gn.googlesource.com/gn /opt/gn && \

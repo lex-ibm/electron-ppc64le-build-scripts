@@ -4,27 +4,22 @@
 # enable|disable system build flags
 %global system_build_flags 0
 
-# set default numjobs for the koji build
-%ifarch aarch64
-%global numjobs 8
-%else
 %global numjobs %{_smp_build_ncpus}
-%endif
 
-# enable|disable all cpus for the build.
-%global use_all_cpus 1
-
-%if %{use_all_cpus}
-%global numjobs %{_smp_build_ncpus}
-%endif
- 
 # official builds have less debugging and go faster... but we have to shut some things off.
 %global official_build 1
 
+# enable|disble use_custom_libcxx
+%global use_custom_libcxx 0
+%if 0%{?rhel}
+# no libcxx in el
+%global use_custom_libcxx 1
+%endif
+
 # enable|disble bootstrap
 %global bootstrap 0
-# workaround for old gn on rhel, it causes build error: unknown function filter_labels_include()
-%if 0%{?rhel}
+# workaround for old gn on el9, it causes build error: unknown function filter_labels_include()
+%if 0%{?rhel} == 9
 %global bootstrap 1
 %endif
 
@@ -43,24 +38,18 @@
 
 # enable|disable headless client build
 %global build_headless 1
-%ifarch ppc64le
-%global build_headless 0
-%endif
 %if 0%{?flatpak}
 %global build_headless 0
 %endif
 
 # set nodejs_version
-%global nodejs_version v20.6.1
+%global nodejs_version v22.14.0
 
 %global system_nodejs 1
-# RHEL 8 needs newer nodejs
-%if 0%{?rhel} == 8
+# RHEL 9 needs newer nodejs
+%if 0%{?rhel} == 9
 %global system_nodejs 0
 %endif
-
-# set esbuild_version
-%global esbuild_version 0.19.2
 
 %if 0%{?rhel} == 8
 %global chromium_pybin /usr/bin/python3.9
@@ -113,7 +102,7 @@
 %global remotingbuilddir out/Remoting
 
 # enable|disable debuginfo
-%global enable_debug 0
+%global enable_debug 1
 # disable debuginfo due to a bug in debugedit on el7
 # error: canonicalization unexpectedly shrank by one character
 # https://bugzilla.redhat.com/show_bug.cgi?id=304121
@@ -143,23 +132,20 @@
 
 # enable|disable control flow integrity support
 %global cfi 0
-%ifarch x86_64 aarch64
-%global cfi 1
-%endif
 
 # enable qt backend
 %global enable_qt 1
 %if %{enable_qt}
 %if 0%{?rhel} > 9 || 0%{?fedora} > 39
 %global use_qt6 1
-%global use_qt 1
+%global use_qt5 1
 %else
 %global use_qt6 0
-%global use_qt 1
+%global use_qt5 1
 %endif
 %else
 %global use_qt6 0
-%global use_qt 0
+%global use_qt5 0
 %endif
 
 # bundle re2, jsoncpp, woff2 - build errors with use_custom_libcxx=true
@@ -186,6 +172,7 @@
 # openjpeg2, need to update to 2.5.x
 %global bundlelibopenjpeg2 1
 %global bundlelibtiff 1
+# libxml2, need to update to 2.14.x for bz#2368923
 %global bundlelibxml 1
 %global bundlepylibs 0
 %global bundlelibxslt 0
@@ -194,8 +181,9 @@
 %global bundlelibXNVCtrl 0
 %global bundlelibusbx 0
 %global bundlelibsecret 0
-%global bundleopus 1
+%global bundleopus 0
 %global bundlelcms2 0
+%global bundlesimdutf 1
 
 # workaround for build error
 # disable bundleminizip for Fedora > 39 due to switch to minizip-ng
@@ -211,15 +199,14 @@
 %global bundlelibdrm 0
 %global bundleffmpegfree 0
 %global bundlefreetype 0
-%global bundlelibxml 0
-# need libtiff-4.6.1 or newer, error: use of undeclared identifier 'TIFFOpenOptionsSetMaxCumulatedMemAlloc'
 %if 0%{?fedora} > 41
+# require libtiff-4.6.1 or newer, error: use of undeclared identifier 'TIFFOpenOptionsSetMaxCumulatedMemAlloc'
 %global bundlelibtiff 0
 %endif
 %if 0%{?fedora}
 %global bundlecrc32c 0
 %endif
-%if 0%{?rhel} > 9 || 0%{?fedora}
+%if 0%{?fedora} || 0%{?rhel} > 9
 %global bundlelibopenjpeg2 0
 %global bundleharfbuzz 0
 %global bundlebrotli 0
@@ -261,8 +248,8 @@
 %endif
 
 Name:	chromium
-Version: 133.0.6943.141
-Release: 1%{?dist}
+Version: 142.0.7444.175
+Release: 5%{?dist}
 Summary: A WebKit (Blink) powered web browser that Google doesn't want you to use
 Url: http://www.chromium.org/Home
 License: BSD-3-Clause AND LGPL-2.1-or-later AND Apache-2.0 AND IJG AND MIT AND GPL-2.0-or-later AND ISC AND OpenSSL AND (MPL-1.1 OR GPL-2.0-only OR LGPL-2.0-only)
@@ -279,11 +266,14 @@ Patch20: chromium-disable-font-tests.patch
 # don't download binary blob
 Patch21: chromium-123-screen-ai-service.patch
 
+# Fix link error when building with system libcxx
+Patch22: chromium-131-fix-qt-ui.pach
+
 # Disable tests on remoting build
 Patch82: chromium-98.0.4758.102-remoting-no-tests.patch
 
 # patch for using system brotli
-Patch89: chromium-125-system-brotli.patch
+Patch89: chromium-142-system-brotli.patch
 
 # patch for using system libxml
 Patch90: chromium-121-system-libxml.patch
@@ -291,16 +281,36 @@ Patch90: chromium-121-system-libxml.patch
 # patch for using system opus
 Patch91: chromium-108-system-opus.patch
 
+# patch for Failed NodeJS version check
+Patch92: chromium-138-checkversion-nodejs.patch
+
+# fix build error
+Patch93: chromium-141-csss_style_sheet.patch
+
+# Revert due to incorrect display of links on startpage in Darkmode
+Patch94: chromium-141-revert-remove-darkmode-image-policy.patch
+
+# FTBFS - error: cannot find attribute `sanitize` in this scope
+#    --> ../../third_party/crabbyavif/src/src/capi/io.rs:210:41
+#     |
+# 210 |     #[cfg_attr(feature = "disable_cfi", sanitize(cfi = "off"))]
+Patch96: chromium-142-crabbyavif-ftbfs-old-rust.patch
+
+# FTBFS - /usr/include/bits/siginfo-consts.h:219:3: error: expected identifier
+# 219 |   SYS_SECCOMP = 1,              /* Seccomp triggered.  */
+Patch97: chromium-141-glibc-2.42-SYS_SECCOMP.patch
+
 # system ffmpeg
 # need for old ffmpeg 5.x on epel9
-Patch129: chromium-125-ffmpeg-5.x-reordered_opaque.patch
-Patch130: chromium-107-ffmpeg-5.x-duration.patch
+Patch128: chromium-138-el9-ffmpeg-deprecated-apis.patch
+Patch129: chromium-el9-ffmpeg-AV_CODEC_FLAG_COPY_OPAQUE.patch
+Patch130: chromium-142-el9-ffmpeg-5.x-duration.patch
 # disable the check
 Patch131: chromium-107-proprietary-codecs.patch
 # fix tab crash with SIGTRAP error when using system ffmpeg
 Patch132: chromium-118-sigtrap_system_ffmpeg.patch
 # need for old ffmpeg 6.0/5.x on epel9 and fedora < 40
-Patch133: chromium-121-system-old-ffmpeg.patch
+Patch133: chromium-142-el9-ffmpeg-5.1.x.patch
 # revert, it causes build error: use of undeclared identifier 'AVFMT_FLAG_NOH264PARSE'
 Patch135: chromium-133-disable-H.264-video-parser-during-demuxing.patch
 # Workaround for youtube stop working
@@ -308,6 +318,9 @@ Patch136: chromium-133-workaround-system-ffmpeg-whitelist.patch
 
 # file conflict with old kernel on el8/el9
 Patch141: chromium-118-dma_buf_export_sync_file-conflict.patch
+
+#  fix ftbfs caused by old python-3.9 on el8
+Patch142: chromium-142-python-3.9-ftbfs.patch
 
 # add correct path for Qt6Gui header and libs
 Patch150: chromium-124-qt6.patch
@@ -321,68 +334,69 @@ Patch305: chromium-124-el8-arm64-memory_tagging.patch
 Patch306: chromium-127-el8-ifunc-header.patch
 
 # workaround for build error due to old atk version on el8
-Patch307: chromium-133-el8-atk-compiler-error.patch
-# Fix build errors due to old clang18 in el 8/9 and f40
-Patch308: chromium-132-el8-unsupport-clang-flags.patch
+Patch307: chromium-134-el8-atk-compiler-error.patch
+# Fix build errors due to old clang18 in el8
+Patch308: chromium-136-unsupport-clang-flags.patch
 Patch309: chromium-132-el8-unsupport-rustc-flags.patch
-Patch310: chromium-132-el8-clang18-build-error.patch
-Patch311: chromium-133-clang18-template.patch
+
+# Fix rhbz#2387446, FTBFS with rust-1.89.0
+Patch310: chromium-139-rust-FTBFS-suppress-warnings.patch
 
 # enable fstack-protector-strong
-Patch312: chromium-123-fstack-protector-strong.patch
-# build error stdarch_arm_crc32
-Patch313: chromium-133-rust-crc32fast.patch
+Patch311: chromium-123-fstack-protector-strong.patch
 
-# warning: unknown warning option '-Wno-nontrivial-memcall'
-Patch314: chromium-134-clang-unknown-option.patch
+# Fix FTBFS: undefined symbol: __rust_no_alloc_shim_is_unstable on EL9
+Patch312: chromium-142-el9-rust-no-alloc-shim-is-unstable.patch
+
+# Fix FTBFS on EL9
+# - error: undefined symbol: __rust_alloc_error_handler_should_panic
+Patch313: chromium-142-el9-rust_alloc_error_handler_should_panic.patch
+
+# old rust version causes build error on el8:
+# error[E0599]: no method named `is_none_or` found for enum `Option` in the current scope
+Patch314: chromium-136-rust-skrifa-build-error.patch
 
 # add -ftrivial-auto-var-init=zero and -fwrapv
 Patch316: chromium-122-clang-build-flags.patch
+
+# unknown warning option -Wno-nontrivial-memcall
+Patch317: chromium-142-clang++-unknown-argument.patch
+
+Patch318: memory-allocator-dcheck-assert-fix.patch
 
 # Workaround for https://bugzilla.redhat.com/show_bug.cgi?id=2239523
 # https://bugs.chromium.org/p/chromium/issues/detail?id=1145581#c60
 # Disable BTI until this is fixed upstream.
 Patch352: chromium-117-workaround_for_crash_on_BTI_capable_system.patch
+
 # workaround for build error on aarch64
 Patch353: chromium-127-aarch64-duplicate-case-value.patch
 
 # remove flag split-threshold-for-reg-with-hint, it's not supported in clang <= 17
-Patch354: chromium-126-split-threshold-for-reg-with-hint.patch
+Patch354: chromium-142-split-threshold-for-reg-with-hint.patch
 
 # fix build error: no member named 'hardware_destructive_interference_size' in namespace 'std'
 Patch355: chromium-130-hardware_destructive_interference_size.patch
 
-# fix build error with new pipewire in f43
-Patch356: chromium-133-pipewire-cast.patch
+# fix build error:
+# ../../build/modules/linux-x64/module.modulemap:11:12: error: header '../../linux/debian_bullseye_amd64-sysroot/usr/include/alloca.h' not found
+Patch356: chromium-141-use_libcxx_modules.patch
+
+# error: no matching member function for call to 'Append'
+Patch357: chromium-134-type-mismatch-error.patch
 
 # set clang_lib path
-Patch358: chromium-127-rust-clanglib.patch
+Patch358: chromium-141-rust-clanglib.patch
 
 # PowerPC64 LE support
 # Timothy Pearson's patchset
 # https://gitlab.raptorengineering.com/raptor-engineering-public/chromium/openpower-patches
 Patch359: add-ppc64-architecture-string.patch
-Patch360: 0001-linux-seccomp-bpf-ppc64-glibc-workaround-in-SIGSYS-h.patch
 Patch361: 0001-sandbox-Enable-seccomp_bpf-for-ppc64.patch
-Patch362: 0001-services-service_manager-sandbox-linux-Fix-TCGETS-de.patch
-Patch363: 0001-sandbox-linux-bpf_dsl-Update-syscall-ranges-for-ppc6.patch
-Patch364: 0001-sandbox-linux-Implement-partial-support-for-ppc64-sy.patch
-Patch365: 0001-sandbox-linux-Update-IsSyscallAllowed-in-broker_proc.patch
-Patch366: 0001-sandbox-linux-Update-syscall-helpers-lists-for-ppc64.patch
-Patch367: 0002-sandbox-linux-bpf_dsl-Modify-seccomp_macros-to-add-s.patch
-Patch368: 0003-sandbox-linux-system_headers-Update-linux-seccomp-he.patch
-Patch369: 0004-sandbox-linux-system_headers-Update-linux-signal-hea.patch
-Patch370: 0005-sandbox-linux-seccomp-bpf-Add-ppc64-syscall-stub.patch
-Patch371: 0005-sandbox-linux-update-unit-test-for-ppc64.patch
-Patch372: 0006-sandbox-linux-disable-timedwait-time64-ppc64.patch
-Patch373: 0007-sandbox-linux-add-ppc64-stat.patch
-Patch374: Sandbox-linux-services-credentials.cc-PPC.patch
-Patch375: 0008-sandbox-fix-ppc64le-glibc234.patch
 
 Patch376: 0001-third_party-angle-Include-missing-header-cstddef-in-.patch
 Patch377: 0001-Add-PPC64-support-for-boringssl.patch
 Patch378: 0001-third_party-libvpx-Properly-generate-gni-on-ppc64.patch
-Patch379: 0001-third_party-lss-Don-t-look-for-mmap2-on-ppc64.patch
 Patch380: 0001-third_party-pffft-Include-altivec.h-on-ppc64-with-SI.patch
 Patch381: 0002-Add-PPC64-generated-files-for-boringssl.patch
 Patch382: 0002-third_party-lss-kernel-structs.patch
@@ -392,55 +406,67 @@ Patch383: 0001-swiftshader-fix-build.patch
 
 Patch384: Rtc_base-system-arch.h-PPC.patch
 
-Patch385: 0002-Include-cstddef-to-fix-build.patch
 Patch386: 0004-third_party-crashpad-port-curl-transport-ppc64.patch
 
 Patch387: HACK-third_party-libvpx-use-generic-gnu.patch
-Patch388: 0001-third-party-hwy-wrong-include.patch
 Patch389: HACK-debian-clang-disable-base-musttail.patch
+Patch390: HACK-debian-clang-disable-pa-musttail.patch
+Patch391: 0001-Add-ppc64-target-to-libaom.patch
+Patch392: 0001-Add-pregenerated-config-for-libaom-on-ppc64.patch
 
-Patch390: 0001-Add-ppc64-target-to-libaom.patch
-Patch391: 0001-Add-pregenerated-config-for-libaom-on-ppc64.patch
-
-Patch392: 0002-third_party-libvpx-Remove-bad-ppc64-config.patch
-Patch393: 0003-third_party-libvpx-Add-ppc64-generated-config.patch
+Patch393: 0002-third_party-libvpx-Remove-bad-ppc64-config.patch
+Patch394: 0003-third_party-libvpx-Add-ppc64-generated-config.patch
 # Enabling VSX causes artifacts to appear in VP9 videos
-Patch394: 0004-third_party-libvpx-work-around-ambiguous-vsx.patch
+Patch395: 0004-third_party-libvpx-work-around-ambiguous-vsx.patch
 
 # Enable VSX acceleration in Skia.  Requires POWER8 or higher.
-Patch395: skia-vsx-instructions.patch
+Patch396: skia-vsx-instructions.patch
 
-Patch396: 0001-Implement-support-for-ppc64-on-Linux.patch
-Patch397: 0001-Implement-support-for-PPC64-on-Linux.patch
-Patch398: 0001-Force-baseline-POWER8-AltiVec-VSX-CPU-features-when-.patch
-Patch399: fix-clang-selection.patch
-Patch400: fix-rustc.patch
-Patch401: fix-rust-linking.patch
-Patch402: fix-breakpad-compile.patch
-Patch403: fix-partition-alloc-compile.patch
-Patch404: fix-study-crash.patch
-Patch405: memory-allocator-dcheck-assert-fix.patch
-Patch406: fix-different-data-layouts.patch
-Patch407: 0002-Add-ppc64-trap-instructions.patch
+Patch397: 0001-Implement-support-for-ppc64-on-Linux.patch
+Patch398: 0001-Implement-support-for-PPC64-on-Linux.patch
+Patch399: 0001-Force-baseline-POWER8-AltiVec-VSX-CPU-features-when-.patch
+Patch400: fix-clang-selection.patch
+Patch401: fix-rustc.patch
+Patch402: fix-rust-linking.patch
+Patch403: fix-breakpad-compile.patch
+Patch404: fix-partition-alloc-compile.patch
+Patch405: fix-study-crash.patch
+Patch407: fix-different-data-layouts.patch
+Patch408: 0002-Add-ppc64-trap-instructions.patch
 
-Patch408: fix-ppc64-linux-syscalls-headers.patch
-Patch409: use-sysconf-page-size-on-ppc64.patch
+Patch409: fix-page-allocator-overflow.patch
+Patch410: 0001-Enable-ppc64-pointer-compression.patch
 
 Patch411: dawn-fix-ppc64le-detection.patch
 Patch412: add-ppc64-architecture-to-extensions.diff
 
 # Suppress harmless compiler warning messages that appear on ppc64 due to arch-specific warning flags being passed
 Patch413: fix-unknown-warning-option-messages.diff
-Patch414: cargo-add-ppc64.diff
 Patch415: add-ppc64-pthread-stack-size.patch
+
+Patch417: 0001-add-xnn-ppc64el-support.patch
+Patch418: 0002-regenerate-xnn-buildgn.patch
 
 # flatpak sandbox patches from
 # https://github.com/flathub/org.chromium.Chromium/tree/master/patches/chromium
-Patch416: flatpak-Add-initial-sandbox-support.patch
-Patch417: flatpak-Adjust-paths-for-the-sandbox.patch
-Patch418: flatpak-Expose-Widevine-into-the-sandbox.patch
+Patch500: flatpak-Add-initial-sandbox-support.patch
+Patch501: flatpak-Adjust-paths-for-the-sandbox.patch
+Patch502: flatpak-Expose-Widevine-into-the-sandbox.patch
+
+# nodejs patches
+%if ! %{system_nodejs}
+Patch510: 0001-Remove-unused-OpenSSL-config.patch
+Patch511: 0002-Fix-Missing-OPENSSL_NO_ENGINE-Guard.patch
+%endif
 
 # upstream patches
+# Fix FTBFS
+# ../../base/containers/span.h:1387:63: error: arithmetic on a pointer to an incomplete type 'element_type' (aka 'const autofill::FormFieldData')
+# 1387 |         typename iterator::AssumeValid(data(), data(), data() + size())));
+Patch1000: chromium-142-missing-include-for-form_field_data.patch
+# Fix Wayland URI DnD issues
+Patch1001: chromium-142-Add-ExtractData-support-for-text-uri-list.patch
+Patch1002: chromium-142-Update-pointer-position-during-draggin.patch
 
 # Use chromium-latest.py to generate clean tarball from released build tarballs, found here:
 # http://build.chromium.org/buildbot/official/
@@ -465,19 +491,13 @@ Source10: chromium-browser.appdata.xml
 Source11: master_preferences
 
 %if ! %{system_nodejs}
-Source12: https://nodejs.org/dist/%{nodejs_version}/node-%{nodejs_version}-linux-x64.tar.xz
-Source13: https://nodejs.org/dist/%{nodejs_version}/node-%{nodejs_version}-linux-arm64.tar.xz
-%endif
-
-# esbuild binary
-%if 0%{?rhel}
-Source14: https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-%{esbuild_version}.tgz
-Source15: https://registry.npmjs.org/@esbuild/linux-arm64/-/linux-arm64-%{esbuild_version}.tgz
-%endif
-
-# esbuild binary from fedora
-%if 0%{?fedora}
-BuildRequires: golang-github-evanw-esbuild
+# nodejs bundles openssl, but we use the system version in el9
+# because openssl contains prohibited code, we remove openssl completely from
+# the tarball, using the script in Source13
+# http://nodejs.org/dist/v${version}/node-${nodejs_version}.tar.gz
+Source12: node-%{nodejs_version}-stripped.tar.gz
+Source13: nodejs-sources.sh
+BuildRequires: openssl-devel
 %endif
 
 BuildRequires: clang
@@ -485,8 +505,12 @@ BuildRequires: clang-tools-extra
 BuildRequires: llvm
 BuildRequires: lld
 
+%if ! %{use_custom_libcxx}
+BuildRequires: libcxx-devel
+%endif
+
 %if 0%{?rhel} && 0%{?rhel} <= 9
-BuildRequires: gcc-toolset-13-libatomic-devel
+BuildRequires: gcc-toolset-14-libatomic-devel
 %endif
 
 BuildRequires: rustc
@@ -526,7 +550,7 @@ BuildRequires:	glib2-devel
 BuildRequires:	glibc-devel
 BuildRequires:	gperf
 
-%if %{use_qt}
+%if %{use_qt5}
 BuildRequires: pkgconfig(Qt5Core)
 BuildRequires: pkgconfig(Qt5Widgets)
 %endif
@@ -749,7 +773,6 @@ BuildRequires: brotli-devel
 %endif
 
 BuildRequires: speech-dispatcher-devel
-BuildRequires: yasm
 BuildRequires: zlib-devel
 
 # remote desktop needs this
@@ -766,6 +789,10 @@ BuildRequires:	java-openjdk-headless
 
 BuildRequires: libevdev-devel
 
+%if ! %{bundlesimdutf}
+BuildRequires: simdutf-devel
+%endif
+
 # There is a hardcoded check for nss 3.26 in the chromium code (crypto/nss_util.cc)
 Requires: nss%{_isa} >= 3.26
 Requires: nss-mdns%{_isa}
@@ -780,85 +807,77 @@ Requires: u2f-hidraw-policy
 
 Requires: chromium-common%{_isa} = %{version}-%{release}
 
-# rhel 8 or newer and fedora < 40: x86_64, aarch64
-# fedora 40 or newer: x86_64, aarch64, ppc64le
-%if 0%{?fedora} >= 40
+# el9: x86_64, aarch64
+# el10, fedora: x86_64, aarch64, ppc64le
+%if 0%{?fedora} || 0%{?rhel} >= 10
 ExclusiveArch: x86_64 aarch64 ppc64le
 %else
 ExclusiveArch: x86_64 aarch64
 %endif
 
 # Bundled bits (I'm sure I've missed some)
-Provides: bundled(angle) = 2422
 Provides: bundled(bintrees) = 1.0.1
 # This is a fork of openssl.
 Provides: bundled(boringssl)
-
 %if %{bundlebrotli}
 Provides: bundled(brotli) = 222564a95d9ab58865a096b8d9f7324ea5f2e03e
 %endif
-
-Provides: bundled(bspatch)
-Provides: bundled(cacheinvalidation) = 20150720
-Provides: bundled(colorama) = 799604a104
-Provides: bundled(crashpad)
-Provides: bundled(dmg_fp)
-Provides: bundled(expat) = 2.2.0
-Provides: bundled(fdmlibm) = 5.3
+%if %{bundlesimdutf} 
+Provides: bundled(simdutf) = 7.0.0
+%endif
+Provides: bundled(bspatch) = 465265d0d473d107b76e74d969199eaf2cdc8750
+Provides: bundled(colorama) = 0.4.6
+Provides: bundled(crashpad) = 8f131016b21d986c38ca4a0f091403dbb822d636
+Provides: bundled(expat) = 2.7.1
+Provides: bundled(fdmlibm) = c512d6173f33c6b8301d3fba9384edc9fc1f9e45
 
 # Don't get too excited. MPEG and other legally problematic stuff is stripped out.
 %if %{bundleffmpegfree}
-Provides: bundled(ffmpeg) = 6.0
+Provides: bundled(ffmpeg) = 7.1.git
 %endif
 
 %if %{bundlelibaom}
-Provides: bundled(libaom)
+Provides: bundled(libaom) = 3.12.1
 %endif
 
-Provides: bundled(fips181) = 2.2.3
-
 %if %{bundlefontconfig}
-Provides: bundled(fontconfig) = 2.12.6
+Provides: bundled(fontconfig) = 8cf0ce700a8abe0d97ace4bf7efc7f9534b729ba
 %endif
 
 %if %{bundlefreetype}
-Provides: bundled(freetype) = 2.11.0git
+Provides: bundled(freetype) = VER-2-13-3-230-ge07e56c7f
 %endif
-
-Provides: bundled(gperftools) = svn144
 
 %if %{bundleharfbuzz}
-Provides: bundled(harfbuzz) = 2.4.0
+Provides: bundled(harfbuzz) = 11.0.0-97
 %endif
 
-Provides: bundled(hunspell) = 1.6.0
-Provides: bundled(iccjpeg)
+Provides: bundled(hunspell) = 6d7d19f
 
 %if %{bundleicu}
-Provides: bundled(icu) = 58.1
+Provides: bundled(icu) = 74-2
 %endif
 
-Provides: bundled(kitchensink) = 1
-Provides: bundled(leveldb) = 1.20
-Provides: bundled(libaddressinput) = 0
+Provides: bundled(leveldb) = 1.23
+Provides: bundled(libaddressinput) = 2610f7b104
 
 %if %{bundlelibdrm}
-Provides: bundled(libdrm) = 2.4.85
+Provides: bundled(libdrm) = 2.4.122
 %endif
 
-Provides: bundled(libjingle) = 9564
+Provides: bundled(libjingle) = 5493b8a59deb16cf0481e24707a0ed72d19047dc
 
 %if %{bundlelibjpeg}
-Provides: bundled(libjpeg-turbo) = 1.4.90
+Provides: bundled(libjpeg-turbo) = 3.1.0
 %endif
 
-Provides: bundled(libphonenumber) = a4da30df63a097d67e3c429ead6790ad91d36cf4
+Provides: bundled(libphonenumber) = 140dfeb81b753388e8a672900fb7a971e9a0d362
 
 %if %{bundlelibpng}
-Provides: bundled(libpng) = 1.6.22
+Provides: bundled(libpng) = 1.6.43
 %endif
 
-Provides: bundled(libsrtp) = 2cbd85085037dc7bf2eda48d4cf62e2829056e2d
+Provides: bundled(libsrtp) = fd08747fa6800b321d53e15feb34da12dc697dee
 
 %if %{bundlelibusbx}
 Provides: bundled(libusbx) = 1.0.17
@@ -871,22 +890,17 @@ Provides: bundled(libwebp) = 0.6.0
 %endif
 
 %if %{bundlelibxml}
-# Well, it's actually newer than 2.9.4 and has code in it that has been reverted upstream... but eh.
-Provides: bundled(libxml) = 2.9.4
+Provides: bundled(libxml) = 2.14.2
 %endif
 
 %if %{bundlelibXNVCtrl}
 Provides: bundled(libXNVCtrl) = 302.17
 %endif
-Provides: bundled(libyuv) = 1651
-Provides: bundled(lzma) = 15.14
-Provides: bundled(libudis86) = 1.7.1
-Provides: bundled(mesa) = 9.0.3
-Provides: bundled(NSBezierPath) = 1.0
-Provides: bundled(mozc)
+Provides: bundled(libyuv) = 1909
+Provides: bundled(lzma) = 24.09
 
 %if %{bundleopus}
-Provides: bundled(opus) = 1.1.3
+Provides: bundled(opus) = 55513e81
 %endif
 
 Provides: bundled(ots) = 8d70cffebbfa58f67a5c3ed0e9bc84dccdbc5bc0
@@ -971,6 +985,9 @@ Qt6 UI for chromium.
 
 %patch -P20 -p1 -b .disable-font-test
 %patch -P21 -p1 -b .screen-ai-service
+%if ! %{use_custom_libcxx}
+%patch -P22 -p1 -b .fix-qt-ui
+%endif
 
 %patch -P82 -p1 -b .remoting-no-tests
 
@@ -988,20 +1005,31 @@ Qt6 UI for chromium.
 %patch -P91 -p1 -b .system-opus
 %endif
 
+%patch -P92 -p1 -b .nodejs-checkversion
+%patch -P93 -p1 -b .ftbfs-csss_style_sheet
+%patch -P94 -p1 -R -b .revert-remove-darkmode-image-policy
+%patch -P96 -p1 -b .crabbyavif-ftbfs-old-rust
+
+%if 0%{?fedora} > 43
+%patch -P97 -p1 -b .glibc-2.42-SYS_SECCOMP
+%endif
+
 %if ! %{bundleffmpegfree}
 %if 0%{?rhel} == 9
-%patch -P129 -p1 -R -b .ffmpeg-5.x-reordered_opaque
-%patch -P130 -p1 -b .ffmpeg-5.x-duration
+%patch -P128 -p1 -b .el9-ffmpeg-deprecated-apis
+%patch -P129 -p1 -b .el9-ffmpeg-AV_CODEC_FLAG_COPY_OPAQUE
+%patch -P130 -p1 -b .el9-ffmpeg-5.x-duration
+%patch -P133 -p1 -b .el9-ffmpeg-5.1.x
 %endif
 %patch -P131 -p1 -b .prop-codecs
 %patch -P132 -p1 -b .sigtrap_system_ffmpeg
-%patch -P133 -p1 -b .system-old-ffmpeg
 %patch -P135 -p1 -b .disable-H.264-video-parser-during-demuxing
 %patch -P136 -p1 -b .workaround-system-ffmpeg-whitelist
 %endif
 
 %if 0%{?rhel} == 8 || 0%{?rhel} == 9
 %patch -P141 -p1 -b .dma_buf_export_sync_file-conflict
+%patch -P142 -p1 -b .python-3.9-ftbfs
 %endif
 
 %patch -P150 -p1 -b .qt6
@@ -1016,24 +1044,29 @@ Qt6 UI for chromium.
 %patch -P306 -p1 -b .el8-ifunc-header
 %endif
 %patch -P307 -p1 -b .el8-atk-compiler-error
-%endif
-%if 0%{?rhel} == 8 || 0%{?rhel} == 9 || 0%{?fedora} == 40
-%patch -P308 -p1 -b .el8-unsupport-clang-flags
+%patch -P308 -p1 -b .unsupport-clang-flags
 %patch -P309 -p1 -b .el8-unsupport-rustc-flags
-%patch -P310 -p1 -b .el8-clang18-build-error
-%patch -P311 -p1 -b .clang18-template
+%patch -P314 -p1 -b .rust-skrifa-build-error
 %endif
 
-%patch -P312 -p1 -b .fstack-protector-strong
+%patch -P310 -p1 -b .rust-FTBFS-suppress-warnings
+%patch -P311 -p1 -b .fstack-protector-strong
 
-%ifarch aarch64
-%if 0%{?rhel} == 8 || 0%{?rhel} == 9
-%patch -P313 -p1 -b .rust-crc32fast
-%endif
+%if 0%{?rhel} == 9
+%patch -P312 -p1 -b .el9-rust-no-alloc-shim-is-unstable
+%patch -P313 -p1 -b .el9-rust_alloc_error_handler_should_panic
 %endif
 
-%patch -P314 -p1 -b .clang-unknown-option
+%if 0%{?rhel} && 0%{?rhel} < 10
+%patch -P354 -p1 -b .split-threshold-for-reg-with-hint
+%endif
 %patch -P316 -p1 -b .clang-build-flags
+
+%if 0%{?fedora} && 0%{?fedora} < 42 || 0%{?rhel} && 0%{?rhel} < 10
+%patch -P317 -p1 -b .clang++-unsupported-argument
+%endif
+
+%patch -P318 -p1 -b .memory-allocator-dcheck-assert-fix
 
 %if %{disable_bti}
 %patch -P352 -p1 -b .workaround_for_crash_on_BTI_capable_system
@@ -1043,82 +1076,66 @@ Qt6 UI for chromium.
 %patch -P353 -p1 -b .duplicate-case-value
 %endif
 
-%if 0%{?rhel} && 0%{?rhel} < 10 || 0%{?fedora} && 0%{?fedora} < 40
-%patch -P354 -p1 -b .split-threshold-for-reg-with-hint
-%endif
-
 %patch -P355 -p1 -b .hardware_destructive_interference_size
 
-%if 0%{?fedora} > 42
-%patch -P356 -p1 -b .pipewire-cast
-%endif
+%patch -P356 -p1 -b .disable_use_libcxx_modules
+
+%patch -P357 -p1 -b .type-mismatch-error
 
 %patch -P358 -p1 -b .rust-clang_lib
 
 %ifarch ppc64le
 %patch -P359 -p1 -b .add-ppc64-architecture-string
-%patch -P360 -p1 -b .0001-linux-seccomp-bpf-ppc64-glibc-workaround-in-SIGSYS-h
 %patch -P361 -p1 -b .0001-sandbox-Enable-seccomp_bpf-for-ppc64
-%patch -P362 -p1 -b .0001-services-service_manager-sandbox-linux-Fix-TCGETS-de
-%patch -P363 -p1 -b .0001-sandbox-linux-bpf_dsl-Update-syscall-ranges-for-ppc6
-%patch -P364 -p1 -b .0001-sandbox-linux-Implement-partial-support-for-ppc64-sy
-%patch -P365 -p1 -b .0001-sandbox-linux-Update-IsSyscallAllowed-in-broker_proc
-%patch -P366 -p1 -b .0001-sandbox-linux-Update-syscall-helpers-lists-for-ppc64
-%patch -P367 -p1 -b .0002-sandbox-linux-bpf_dsl-Modify-seccomp_macros-to-add-s
-%patch -P368 -p1 -b .0003-sandbox-linux-system_headers-Update-linux-seccomp-he
-%patch -P369 -p1 -b .0004-sandbox-linux-system_headers-Update-linux-signal-hea
-%patch -P370 -p1 -b .0005-sandbox-linux-seccomp-bpf-Add-ppc64-syscall-stub
-%patch -P371 -p1 -b .0005-sandbox-linux-update-unit-test-for-ppc64
-%patch -P372 -p1 -b .0006-sandbox-linux-disable-timedwait-time64-ppc64
-%patch -P373 -p1 -b .0007-sandbox-linux-add-ppc64-stat
-%patch -P374 -p1 -b .Sandbox-linux-services-credentials.cc-PPC
-%patch -P375 -p1 -b .0008-sandbox-fix-ppc64le-glibc234
 %patch -P376 -p1 -b .0001-third_party-angle-Include-missing-header-cstddef-in-
 %patch -P377 -p1 -b .0001-Add-PPC64-support-for-boringssl
 %patch -P378 -p1 -b .0001-third_party-libvpx-Properly-generate-gni-on-ppc64
-%patch -P379 -p1 -b .0001-third_party-lss-Don-t-look-for-mmap2-on-ppc64
 %patch -P380 -p1 -b .0001-third_party-pffft-Include-altivec.h-on-ppc64-with-SI
-%patch -P381 -p1 -b .002-Add-PPC64-generated-files-for-boringssl
+%patch -P381 -p1 -b .0002-Add-PPC64-generated-files-for-boringssl
 %patch -P382 -p1 -b .0002-third_party-lss-kernel-structs
 %patch -P383 -p1 -b .0001-swiftshader-fix-build
 %patch -P384 -p1 -b .Rtc_base-system-arch.h-PPC
-%patch -P385 -p1 -b .0002-Include-cstddef-to-fix-build
 %patch -P386 -p1 -b .0004-third_party-crashpad-port-curl-transport-ppc64
 %patch -P387 -p1 -b .HACK-third_party-libvpx-use-generic-gnu
-%patch -P388 -p1 -b .0001-third-party-hwy-wrong-include.patch
 %patch -P389 -p1 -b .HACK-debian-clang-disable-base-musttail
-%patch -P390 -p1 -b .0001-Add-ppc64-target-to-libaom
-%patch -P391 -p1 -b .0001-Add-pregenerated-config-for-libaom-on-ppc64
-%patch -P392 -p1 -b .0002-third_party-libvpx-Remove-bad-ppc64-config
-%patch -P393 -p1 -b .0003-third_party-libvpx-Add-ppc64-generated-config
-%patch -P394 -p1 -b .0004-third_party-libvpx-work-around-ambiguous-vsx
-%patch -P395 -p1 -b .skia-vsx-instructions
-%patch -P396 -p1 -b .0001-Implement-support-for-ppc64-on-Linux
-%patch -P397 -p1 -b .0001-Implement-support-for-PPC64-on-Linux
-%patch -P398 -p1 -b .0001-Force-baseline-POWER8-AltiVec-VSX-CPU-features-when-
-%patch -P399 -p1 -b .fix-clang-selection
-%patch -P400 -p1 -b .fix-rustc
-%patch -P401 -p1 -b .fix-rust-linking
-%patch -P402 -p1 -b .fix-breakpad-compile
-%patch -P403 -p1 -b .fix-partition-alloc-compile
-%patch -P404 -p1 -b .fix-study-crash
-%patch -P405 -p1 -b .memory-allocator-dcheck-assert-fix
-%patch -P406 -p1 -b .fix-different-data-layouts
-%patch -P407 -p1 -b .0002-Add-ppc64-trap-instructions
-%patch -P408 -p1 -b .fix-ppc64-linux-syscalls-headers
-%patch -P409 -p1 -b .use-sysconf-page-size-on-ppc64
+%patch -P390 -p1 -b .HACK-debian-clang-disable-pa-musttail
+%patch -P391 -p1 -b .0001-Add-ppc64-target-to-libaom
+%patch -P392 -p1 -b .0001-Add-pregenerated-config-for-libaom-on-ppc64
+%patch -P393 -p1 -b .0002-third_party-libvpx-Remove-bad-ppc64-config
+%patch -P394 -p1 -b .0003-third_party-libvpx-Add-ppc64-generated-config
+%patch -P395 -p1 -b .0004-third_party-libvpx-work-around-ambiguous-vsx
+%patch -P396 -p1 -b .skia-vsx-instructions
+%patch -P397 -p1 -b .0001-Implement-support-for-ppc64-on-Linux
+%patch -P398 -p1 -b .0001-Implement-support-for-PPC64-on-Linux
+%patch -P399 -p1 -b .0001-Force-baseline-POWER8-AltiVec-VSX-CPU-features-when-
+%patch -P400 -p1 -b .fix-clang-selection
+%patch -P401 -p1 -b .fix-rustc
+%patch -P402 -p1 -b .fix-rust-linking
+%patch -P403 -p1 -b .fix-breakpad-compile
+%patch -P404 -p1 -b .fix-partition-alloc-compile
+%patch -P405 -p1 -b .fix-study-crash
+%patch -P407 -p1 -b .fix-different-data-layouts
+%patch -P408 -p1 -b .0002-Add-ppc64-trap-instructions
+%patch -P409 -p1 -b .fix-page-allocator-overflow
+%patch -P410 -p1 -b .0001-Enable-ppc64-pointer-compression
 %patch -P411 -p1 -b .dawn-fix-ppc64le-detection
 %patch -P412 -p1 -b .add-ppc64-architecture-to-extensions
 %patch -P413 -p1 -b .fix-unknown-warning-option-messages
-%patch -P414 -p1 -b .rust-add-ppc64-case
 %patch -P415 -p1 -b .add-ppc64-pthread-stack-size
+%patch -P417 -p1 -b .0001-add-xnn-ppc64el-support
+%patch -P418 -p1 -b .0002-regenerate-xnn-buildgn
 %endif
 
 %if 0%{?flatpak}
-%patch -P416 -p1 -b .flatpak-initial-sandbox
-%patch -P417 -p1 -b .flatpak-sandbox-paths
-%patch -P418 -p1 -b .flatpak-widevine
+%patch -P500 -p1 -b .flatpak-initial-sandbox
+%patch -P501 -p1 -b .flatpak-sandbox-paths
+%patch -P502 -p1 -b .flatpak-widevine
 %endif
+
+# Upstream patches
+%patch -P1000 -p1 -b .missing-include-for-form_field_data.patch
+%patch -P1001 -p1 -b .Add-ExtractData-support-for-text-uri-list.patch
+%patch -P1002 -p1 -b .Update-pointer-position-during-draggin.patch
 
 # Change shebang in all relevant files in this directory and all subdirectories
 # See `man find` for how the `-exec command {} +` syntax works
@@ -1126,41 +1143,22 @@ find -type f \( -iname "*.py" \) -exec sed -i '1s=^#! */usr/bin/\(python\|env py
 
 # Add correct path for nodejs binary
 %if ! %{system_nodejs}
-  pushd third_party/node/linux
-%ifarch x86_64
-  tar xf %{SOURCE12}
-  mv node-%{nodejs_version}-linux-x64 node-linux-x64
-%endif
-%ifarch aarch64
-  tar xf %{SOURCE13}
-  mv node-%{nodejs_version}-linux-arm64 node-linux-arm64
-  # This is weird, but whatever
-  ln -s node-linux-arm64 node-linux-x64
-%endif
-popd
+  ln -s ../../../node-%{nodejs_version}/node-%{nodejs_version}-linux-x64 third_party/node/linux/node-linux-x64
 %else
   mkdir -p third_party/node/linux/node-linux-x64/bin
   ln -s $(which node) third_party/node/linux/node-linux-x64/bin/node
 %endif
 
-# Get rid of the bundled esbuild
-%if 0%{?fedora}
-  ln -sf $(which esbuild) third_party/devtools-frontend/src/third_party/esbuild/esbuild
-%else
-  %ifarch x86_64
-    tar -zxf %{SOURCE14} --directory %{_tmppath}
-  %endif
-  %ifarch aarch64
-    tar -zxf %{SOURCE15} --directory %{_tmppath}
-  %endif
-  mv %{_tmppath}/package/bin/esbuild third_party/devtools-frontend/src/third_party/esbuild/esbuild
-%endif
+# Get rid of the prebuilt esbuild binary
+rm -rf third_party/devtools-frontend/src/third_party/esbuild
 
-# Get rid of the pre-built eu-strip binary, it is x86_64 and of mysterious origin
-rm -rf buildtools/third_party/eu-strip/bin/eu-strip
-  
-# Replace it with a symlink to the Fedora copy
-ln -s $(which eu-strip) buildtools/third_party/eu-strip/bin/eu-strip
+# Remove bundle gn and replace it with a system gn or bootstrap gn as it is x86_64 and causes
+# FTBFS on other arch like aarch64/ppc64le
+%if %{bootstrap}
+ln -sf ../../%{chromebuilddir}/gn buildtools/linux64/gn 
+%else
+ln -sf $(which gn) buildtools/linux64/gn
+%endif
 
 %if %{bundlelibusbx}
 # no hackity hack hack
@@ -1178,9 +1176,26 @@ sed -i 's/getenv("CHROME_VERSION_EXTRA")/"Fedora Project"/' chrome/common/channe
 sed -i 's|/opt/google/chrome-remote-desktop|%{crd_path}|g' remoting/host/setup/daemon_controller_delegate_linux.cc
 
 # bz#2265957, add correct platform
-sed -i "s/Linux x86_64/Linux %{_arch}/" content/common/user_agent.cc
- 
+sed -i "s/Linux x86_64/Linux %{_arch}/" components/embedder_support/user_agent_utils.cc
+
+%if ! %{bundlesimdutf}
+ln -sf %{_includedir}/simdutf.h third_party/simdutf/simdutf.h
+%endif
+
 %build
+
+%if ! %{system_nodejs}
+# Build nodejs and Replace bundle binary
+export CXX=c++
+tar xf %{SOURCE12}
+pushd node-%{nodejs_version}
+patch -p1 < %{_sourcedir}/0001-Remove-unused-OpenSSL-config.patch
+patch -p1 < %{_sourcedir}/0002-Fix-Missing-OPENSSL_NO_ENGINE-Guard.patch
+./configure --ninja --shared-openssl --openssl-conf-name=openssl_conf --enable-static --prefix=node-%{nodejs_version}-linux-x64
+ninja -j %{numjobs} -C %{chromebuilddir}
+make install
+popd
+%endif
 
 # reduce warnings
 FLAGS=' -Wno-deprecated-declarations -Wno-unknown-warning-option -Wno-unused-command-line-argument'
@@ -1202,6 +1217,11 @@ CXXFLAGS="$FLAGS"
 CXXFLAGS+=' -faltivec-src-compat=mixed -Wno-deprecated-altivec-src-compat'
 %endif
 
+%if ! %{use_custom_libcxx}
+LDFLAGS="${LDFLAGS} -stdlib=libc++"
+CXXFLAGS="${CXXFLAGS} -stdlib=libc++"
+%endif
+
 export CC=clang
 export CXX=clang++
 export AR=llvm-ar
@@ -1209,6 +1229,7 @@ export NM=llvm-nm
 export READELF=llvm-readelf
 export CFLAGS
 export CXXFLAGS
+export LDFLAGS
 
 # need for error: the option `Z` is only accepted on the nightly compiler
 export RUSTC_BOOTSTRAP=1
@@ -1216,13 +1237,13 @@ export RUSTC_BOOTSTRAP=1
 # set rustc version
 rustc_version="$(rustc --version)"
 # set rust bindgen root
-rust_bindgen_root="$(which bindgen | sed 's#/bin/.*##')"
+rust_bindgen_root="$(which bindgen | sed 's#/s\?bin/.*##')"
 rust_sysroot_absolute="$(rustc --print sysroot)"
 
 # set clang version
 clang_version="$(clang --version | sed -n 's/clang version //p' | cut -d. -f1)"
-%if 0%{?fedora} > 41
-clang_base_path="$(which clang | sed 's#/bin/.*##')"
+%if 0%{?fedora} > 41 || 0%{?rhel} > 9
+clang_base_path="$(PATH=/usr/bin:/usr/sbin which clang | sed 's#/bin/.*##')"
 %else
 clang_base_path="$(clang --version | grep InstalledDir | cut -d' ' -f2 | sed 's#/bin##')"
 %endif
@@ -1232,8 +1253,11 @@ CHROMIUM_CORE_GN_DEFINES=""
 # using system toolchain
 CHROMIUM_CORE_GN_DEFINES+=' custom_toolchain="//build/toolchain/linux/unbundle:default"'
 CHROMIUM_CORE_GN_DEFINES+=' host_toolchain="//build/toolchain/linux/unbundle:default"'
+%if ! %{use_custom_libcxx}
+CHROMIUM_BROWSER_GN_DEFINES+=' use_custom_libcxx=false'
+%endif
 CHROMIUM_CORE_GN_DEFINES+=' is_debug=false dcheck_always_on=false dcheck_is_configurable=false'
-CHROMIUM_CORE_GN_DEFINES+=' enable_nacl=false'
+CHROMIUM_CORE_GN_DEFINES+=' enable_enterprise_companion=false'
 CHROMIUM_CORE_GN_DEFINES+=' system_libdir="%{_lib}"'
 
 %if %{official_build}
@@ -1245,8 +1269,6 @@ CHROMIUM_CORE_GN_DEFINES+=' chrome_pgo_phase=0'
 
 %if ! %{cfi}
 CHROMIUM_CORE_GN_DEFINES+=' is_cfi=false use_thin_lto=false'
-%else
-CHROMIUM_CORE_GN_DEFINES+=' is_cfi=true use_thin_lto=true'
 %endif
 
 %if %{useapikey}
@@ -1260,7 +1282,7 @@ CHROMIUM_CORE_GN_DEFINES+=' google_default_client_secret="%{default_client_secre
 
 CHROMIUM_CORE_GN_DEFINES+=' is_clang=true'
 CHROMIUM_CORE_GN_DEFINES+=" clang_base_path=\"$clang_base_path\""
-CHROMIUM_CORE_GN_DEFINES+=" clang_version=\"$clang_version\""
+CHROMIUM_CORE_GN_DEFINES+=" clang_version=$clang_version"
 CHROMIUM_CORE_GN_DEFINES+=' clang_use_chrome_plugins=false'
 CHROMIUM_CORE_GN_DEFINES+=' use_lld=true'
 
@@ -1291,6 +1313,7 @@ CHROMIUM_CORE_GN_DEFINES+=' symbol_level=%{debug_level} blink_symbol_level=%{deb
 CHROMIUM_CORE_GN_DEFINES+=' angle_has_histograms=false'
 # drop unrar
 CHROMIUM_CORE_GN_DEFINES+=' safe_browsing_use_unrar=false'
+CHROMIUM_CORE_GN_DEFINES+=' v8_enable_backtrace=true'
 export CHROMIUM_CORE_GN_DEFINES
 
 # browser gn defines
@@ -1312,11 +1335,13 @@ CHROMIUM_BROWSER_GN_DEFINES+=' media_use_openh264=false'
 CHROMIUM_BROWSER_GN_DEFINES+=' rtc_use_h264=false'
 %endif
 CHROMIUM_BROWSER_GN_DEFINES+=' use_kerberos=true'
+# Workaround for FTBFS, error: no member named 'bPsnrY' in 'Source_Picture_s'
+CHROMIUM_BROWSER_GN_DEFINES+=' rtc_video_psnr=false'
 
-%if %{use_qt}
-CHROMIUM_BROWSER_GN_DEFINES+=" use_qt=true moc_qt5_path=\"$(%{_qt5_qmake} -query QT_HOST_BINS)\""
+%if %{use_qt5}
+CHROMIUM_BROWSER_GN_DEFINES+=" use_qt5=true moc_qt5_path=\"$(%{_qt5_qmake} -query QT_HOST_BINS)\""
 %else
-CHROMIUM_BROWSER_GN_DEFINES+=' use_qt=false'
+CHROMIUM_BROWSER_GN_DEFINES+=' use_qt5=false'
 %endif
 
 %if %{use_qt6}
@@ -1378,7 +1403,7 @@ CHROMIUM_HEADLESS_GN_DEFINES+=' v8_use_external_startup_data=false enable_print_
 CHROMIUM_HEADLESS_GN_DEFINES+=' use_alsa=false use_bluez=false use_cups=false use_dbus=false use_gio=false use_kerberos=false'
 CHROMIUM_HEADLESS_GN_DEFINES+=' use_libpci=false use_pulseaudio=false use_udev=false rtc_use_pipewire=false'
 CHROMIUM_HEADLESS_GN_DEFINES+=' v8_enable_lazy_source_positions=false use_glib=false use_gtk=false use_pangocairo=false'
-CHROMIUM_HEADLESS_GN_DEFINES+=' use_qt=false use_qt6=false is_component_build=false enable_ffmpeg_video_decoders=false media_use_ffmpeg=false'
+CHROMIUM_HEADLESS_GN_DEFINES+=' use_qt5=false use_qt6=false is_component_build=false enable_ffmpeg_video_decoders=false media_use_ffmpeg=false'
 CHROMIUM_HEADLESS_GN_DEFINES+=' media_use_libvpx=false proprietary_codecs=false'
 export CHROMIUM_HEADLESS_GN_DEFINES
 
@@ -1474,6 +1499,9 @@ system_libs=()
 %if 0%{?noopenh264}
 	system_libs+=(openh264)
 %endif
+%if ! %{bundlesimdutf}
+   system_libs+=(simdutf)
+%endif
 
 build/linux/unbundle/replace_gn_files.py --system-libraries ${system_libs[@]}
 
@@ -1491,20 +1519,16 @@ mkdir -p %{chromebuilddir} && cp -a $(which gn) %{chromebuilddir}/
 
 %{chromebuilddir}/gn --script-executable=%{chromium_pybin} gen --args="$CHROMIUM_CORE_GN_DEFINES $CHROMIUM_BROWSER_GN_DEFINES" %{chromebuilddir}
 
-%if %{build_headless}
-%{chromebuilddir}/gn --script-executable=%{chromium_pybin} gen --args="$CHROMIUM_CORE_GN_DEFINES $CHROMIUM_HEADLESS_GN_DEFINES" %{headlessbuilddir}
-%endif
-
-%if %{build_headless}
-# Do headless first.
-%build_target %{headlessbuilddir} headless_shell
-%endif
-
 %build_target %{chromebuilddir} chrome
+
 %build_target %{chromebuilddir} chrome_sandbox
 
 %if %{build_chromedriver}
 %build_target %{chromebuilddir} chromedriver
+%endif
+
+%if %{build_headless}
+%build_target %{chromebuilddir} headless_shell
 %endif
 
 %install
@@ -1556,7 +1580,7 @@ pushd %{chromebuilddir}
 	# This is ANGLE, not to be confused with the similarly named files under swiftshader/
 	cp -a libEGL.so libGLESv2.so %{buildroot}%{chromium_path}
 
-	%if %{use_qt}
+	%if %{use_qt5}
 		cp -a libqt5_shim.so %{buildroot}%{chromium_path}
 	%endif
 
@@ -1573,7 +1597,7 @@ pushd %{chromebuilddir}
 popd
 
 %if %{build_headless}
-	pushd %{headlessbuilddir}
+	pushd %{chromebuilddir}
 		cp -a *.pak headless_shell %{buildroot}%{chromium_path}
 	popd
 %endif
@@ -1636,7 +1660,6 @@ fi
 %config %{_sysconfdir}/%{name}/master_preferences
 %config %{_sysconfdir}/%{name}/policies/
 %{_bindir}/chromium-browser
-%{chromium_path}/*.bin
 %{chromium_path}/chrome_*.pak
 %{chromium_path}/chrome_crashpad_handler
 %{chromium_path}/resources.pak
@@ -1649,7 +1672,7 @@ fi
 %{_datadir}/appdata/*.appdata.xml
 %{_datadir}/gnome-control-center/default-apps/chromium-browser.xml
 
-%if %{use_qt}
+%if %{use_qt5}
 %files qt5-ui
 %{chromium_path}/libqt5_shim.so
 %endif
@@ -1660,76 +1683,74 @@ fi
 %endif
 
 %files common
-%ifarch x86_64 aarch64 ppc64le
 %{chromium_path}/libvk_swiftshader.so*
 %{chromium_path}/libvulkan.so*
 %{chromium_path}/vk_swiftshader_icd.json
 %{chromium_path}/libEGL.so*
 %{chromium_path}/libGLESv2.so*
-%endif
+%{chromium_path}/*.bin
 %if %{bundleicu}
 %{chromium_path}/icudtl.dat
 %endif
 %dir %{chromium_path}/
 %dir %{chromium_path}/locales/
-%lang(af) %{chromium_path}/locales/af.pak
-%lang(am) %{chromium_path}/locales/am.pak
-%lang(ar) %{chromium_path}/locales/ar.pak
-%lang(bg) %{chromium_path}/locales/bg.pak
-%lang(bn) %{chromium_path}/locales/bn.pak
-%lang(ca) %{chromium_path}/locales/ca.pak
-%lang(cs) %{chromium_path}/locales/cs.pak
-%lang(da) %{chromium_path}/locales/da.pak
-%lang(de) %{chromium_path}/locales/de.pak
-%lang(el) %{chromium_path}/locales/el.pak
-%lang(en_GB) %{chromium_path}/locales/en-GB.pak
+%lang(af) %{chromium_path}/locales/af*.pak
+%lang(am) %{chromium_path}/locales/am*.pak
+%lang(ar) %{chromium_path}/locales/ar*.pak
+%lang(bg) %{chromium_path}/locales/bg*.pak
+%lang(bn) %{chromium_path}/locales/bn*.pak
+%lang(ca) %{chromium_path}/locales/ca*.pak
+%lang(cs) %{chromium_path}/locales/cs*.pak
+%lang(da) %{chromium_path}/locales/da*.pak
+%lang(de) %{chromium_path}/locales/de*.pak
+%lang(el) %{chromium_path}/locales/el*.pak
+%lang(en_GB) %{chromium_path}/locales/en-GB*.pak
 # Chromium _ALWAYS_ needs en-US.pak as a fallback
 # This means we cannot apply the lang code here.
 # Otherwise, it is filtered out on install.
-%{chromium_path}/locales/en-US.pak
-%lang(es) %{chromium_path}/locales/es.pak
-%lang(es) %{chromium_path}/locales/es-419.pak
-%lang(et) %{chromium_path}/locales/et.pak
-%lang(fa) %{chromium_path}/locales/fa.pak
-%lang(fi) %{chromium_path}/locales/fi.pak
-%lang(fil) %{chromium_path}/locales/fil.pak
-%lang(fr) %{chromium_path}/locales/fr.pak
-%lang(gu) %{chromium_path}/locales/gu.pak
-%lang(he) %{chromium_path}/locales/he.pak
-%lang(hi) %{chromium_path}/locales/hi.pak
-%lang(hr) %{chromium_path}/locales/hr.pak
-%lang(hu) %{chromium_path}/locales/hu.pak
-%lang(id) %{chromium_path}/locales/id.pak
-%lang(it) %{chromium_path}/locales/it.pak
-%lang(ja) %{chromium_path}/locales/ja.pak
-%lang(kn) %{chromium_path}/locales/kn.pak
-%lang(ko) %{chromium_path}/locales/ko.pak
-%lang(lt) %{chromium_path}/locales/lt.pak
-%lang(lv) %{chromium_path}/locales/lv.pak
-%lang(ml) %{chromium_path}/locales/ml.pak
-%lang(mr) %{chromium_path}/locales/mr.pak
-%lang(ms) %{chromium_path}/locales/ms.pak
-%lang(nb) %{chromium_path}/locales/nb.pak
-%lang(nl) %{chromium_path}/locales/nl.pak
-%lang(pl) %{chromium_path}/locales/pl.pak
-%lang(pt_BR) %{chromium_path}/locales/pt-BR.pak
-%lang(pt_PT) %{chromium_path}/locales/pt-PT.pak
-%lang(ro) %{chromium_path}/locales/ro.pak
-%lang(ru) %{chromium_path}/locales/ru.pak
-%lang(sk) %{chromium_path}/locales/sk.pak
-%lang(sl) %{chromium_path}/locales/sl.pak
-%lang(sr) %{chromium_path}/locales/sr.pak
-%lang(sv) %{chromium_path}/locales/sv.pak
-%lang(sw) %{chromium_path}/locales/sw.pak
-%lang(ta) %{chromium_path}/locales/ta.pak
-%lang(te) %{chromium_path}/locales/te.pak
-%lang(th) %{chromium_path}/locales/th.pak
-%lang(tr) %{chromium_path}/locales/tr.pak
-%lang(uk) %{chromium_path}/locales/uk.pak
-%lang(ur) %{chromium_path}/locales/ur.pak
-%lang(vi) %{chromium_path}/locales/vi.pak
-%lang(zh_CN) %{chromium_path}/locales/zh-CN.pak
-%lang(zh_TW) %{chromium_path}/locales/zh-TW.pak
+%{chromium_path}/locales/en-US*.pak
+%lang(es) %{chromium_path}/locales/es*.pak
+%lang(et) %{chromium_path}/locales/et*.pak
+%lang(fa) %{chromium_path}/locales/fa*.pak
+%lang(fi) %{chromium_path}/locales/fi{.pak,_*.pak}
+%lang(fil) %{chromium_path}/locales/fil*.pak
+%lang(fr) %{chromium_path}/locales/fr*.pak
+%lang(gu) %{chromium_path}/locales/gu*.pak
+%lang(he) %{chromium_path}/locales/he*.pak
+%lang(hi) %{chromium_path}/locales/hi*.pak
+%lang(hr) %{chromium_path}/locales/hr*.pak
+%lang(hu) %{chromium_path}/locales/hu*.pak
+%lang(id) %{chromium_path}/locales/id*.pak
+%lang(it) %{chromium_path}/locales/it*.pak
+%lang(ja) %{chromium_path}/locales/ja*.pak
+%lang(kn) %{chromium_path}/locales/kn*.pak
+%lang(ko) %{chromium_path}/locales/ko*.pak
+%lang(lt) %{chromium_path}/locales/lt*.pak
+%lang(lv) %{chromium_path}/locales/lv*.pak
+%lang(ml) %{chromium_path}/locales/ml*.pak
+%lang(mr) %{chromium_path}/locales/mr*.pak
+%lang(ms) %{chromium_path}/locales/ms*.pak
+%lang(nb) %{chromium_path}/locales/nb*.pak
+%lang(nl) %{chromium_path}/locales/nl*.pak
+%lang(pl) %{chromium_path}/locales/pl*.pak
+%lang(pt_BR) %{chromium_path}/locales/pt-BR*.pak
+%lang(pt_PT) %{chromium_path}/locales/pt-PT*.pak
+%lang(ro) %{chromium_path}/locales/ro*.pak
+%lang(ru) %{chromium_path}/locales/ru*.pak
+%lang(sk) %{chromium_path}/locales/sk*.pak
+%lang(sl) %{chromium_path}/locales/sl*.pak
+%lang(sr) %{chromium_path}/locales/sr*.pak
+%lang(sv) %{chromium_path}/locales/sv*.pak
+%lang(sw) %{chromium_path}/locales/sw*.pak
+%lang(ta) %{chromium_path}/locales/ta*.pak
+%lang(te) %{chromium_path}/locales/te*.pak
+%lang(th) %{chromium_path}/locales/th*.pak
+%lang(tr) %{chromium_path}/locales/tr*.pak
+%lang(uk) %{chromium_path}/locales/uk*.pak
+%lang(ur) %{chromium_path}/locales/ur*.pak
+%lang(vi) %{chromium_path}/locales/vi*.pak
+%lang(zh_CN) %{chromium_path}/locales/zh-CN*.pak
+%lang(zh_TW) %{chromium_path}/locales/zh-TW*.pak
 # These are psuedolocales, not real ones.
 # They only get generated when is_official_build=false
 %if ! %{official_build}
@@ -1752,6 +1773,321 @@ fi
 %endif
 
 %changelog
+* Mon Dec 01 2025 LuK1337 <priv.luk@gmail.com> - 142.0.7444.175-5
+- Backport one more Wayland DnD bug fix from upstream
+
+* Mon Nov 24 2025 Than Ngo <than@redhat.com> - 142.0.7444.175-4
+- Enable system libcxx
+- Fix link error when building with system libcxx
+- Apply memory-allocator-dcheck-assert-fix for aarch64
+
+* Thu Nov 20 2025 LuK1337 <priv.luk@gmail.com> - 142.0.7444.175-3
+- Backport Wayland DnD bug fix from upstream
+
+* Wed Nov 19 2025 Than Ngo <than@redhat.com> - 142.0.7444.175-2
+- Fix typos in chromium.conf
+
+* Tue Nov 18 2025 Than Ngo <than@redhat.com> - 142.0.7444.175-1
+- Update to 142.0.7444.175
+  * High CVE-2025-13223: Type Confusion in V8
+  * High CVE-2025-13224: Type Confusion in V8
+
+* Sat Nov 15 2025 LuK1337 <priv.luk@gmail.com> - 142.0.7444.162-2
+- Disable LensOverlay feature by default
+
+* Thu Nov 13 2025 Mamoru TASAKA <mtasaka@fedoraproject.org> - 142.0.7444.162-2
+- Rebuild for ffmpeg 8 again
+
+* Wed Nov 12 2025 Than Ngo <than@redhat.com> - 142.0.7444.162-1
+- Update to 142.0.7444.162
+  * High CVE-2025-13042: Inappropriate implementation in V8
+
+* Tue Nov 11 2025 Dominik Mierzejewski <dominik@greysector.net> - 142.0.7444.134-2
+- Rebuilt for FFmpeg 8
+
+* Thu Nov 06 2025 Than Ngo <than@redhat.com> - 142.0.7444.134-1
+- Update to 142.0.7444.134
+  * High CVE-2025-12725: Out of bounds write in WebGPU
+  * High CVE-2025-12726: Inappropriate implementation in Views
+  * High CVE-2025-12727: Inappropriate implementation in V8
+  * Medium CVE-2025-12728: Inappropriate implementation in Omnibox
+  * Medium CVE-2025-12729: Inappropriate implementation in Omnibox
+
+* Wed Nov 05 2025 Dominik Mierzejewski <dominik@greysector.net> - 142.0.7444.59-2
+- Rebuilt for FFmpeg 8
+
+* Thu Oct 30 2025 Than Ngo <than@redhat.com> - 142.0.7444.59-1
+- Update to 142.0.7444.59
+  * High CVE-2025-12428: Type Confusion in V8
+  * High CVE-2025-12429: Inappropriate implementation in V8
+  * High CVE-2025-12430: Object lifecycle issue in Media
+  * High CVE-2025-12431: Inappropriate implementation in Extensions
+  * High CVE-2025-12432: Race in V8
+  * High CVE-2025-12433: Inappropriate implementation in V8
+  * High CVE-2025-12036: Inappropriate implementation in V8
+  * Medium CVE-2025-12434: Race in Storage
+  * Medium CVE-2025-12435: Incorrect security UI in Omnibox
+  * Medium CVE-2025-12436: Policy bypass in Extensions
+  * Medium CVE-2025-12437: Use after free in PageInfo
+  * Medium CVE-2025-12438: Use after free in Ozone
+  * Medium CVE-2025-12439: Inappropriate implementation in App-Bound Encryption
+  * Low CVE-2025-12440: Inappropriate implementation in Autofill
+  * Medium CVE-2025-12441: Out of bounds read in V8
+  * Medium CVE-2025-12443: Out of bounds read in WebXR
+  * Low CVE-2025-12444: Incorrect security UI in Fullscreen UI
+  * Low CVE-2025-12445: Policy bypass in Extensions
+  * Low CVE-2025-12446: Incorrect security UI in SplitView
+  * Low CVE-2025-12447: Incorrect security UI in Omnibox
+  * Refreshed ppc64le patches
+  * Refreshed system-brotli patch
+  * Refreshed clang++-unknown-argument patch
+  * Refreshed split-threshold-for-reg-with-hint patch
+  * Fixed some FTBFS caused by missing header files
+  * Fixed FTBFS caused by old rust compiler
+  * Fixed FTBFS caused by new glibc-2.42 in Rawhide
+  * Fixed FTBFS caused by old python-3.9.x in EL8/9
+  * Dropped obsoleted chromium-141-el9-ffmpeg-5.x-duration.patch for old ffmpeg on EL9
+
+* Wed Oct 22 2025 Than Ngo <than@redhat.com> - 141.0.7390.122-1
+- Update to 141.0.7390.122
+  * High CVE-2025-12036 chromium: Inappropriate implementation in V8
+
+* Wed Oct 15 2025 Than Ngo <than@redhat.com> - 141.0.7390.107-1
+- Update 141.0.7390.107
+  * High CVE-2025-11756: Use after free in Safe Browsing
+
+* Sun Oct 12 2025 Than Ngo <than@redhat.com> - 141.0.7390.76-1
+- Update to 141.0.7390.76
+
+* Wed Oct 08 2025 Than Ngo <than@redhat.com> - 141.0.7390.65-1
+- Update to 141.0.7390.65
+  * High CVE-2025-11458: Heap buffer overflow in Sync
+  * High CVE-2025-11460: Use after free in Storage
+  * Medium CVE-2025-11211: Out of bounds read in WebCodecs
+
+* Fri Oct 03 2025 Tom Stellard <tstellar@redhat.com> - 141.0.7390.54-2
+- Fix build with clang-22
+
+* Thu Oct 02 2025 Than Ngo <than@redhat.com> - 141.0.7390.54-1
+- Update to 141.0.7390.54
+  * High CVE-2025-11205: Heap buffer overflow in WebGPU
+  * High CVE-2025-11206: Heap buffer overflow in Video
+  * Medium CVE-2025-11207: Side-channel information leakage in Storage
+  * Medium CVE-2025-11208: Inappropriate implementation in Media
+  * Medium CVE-2025-11209: Inappropriate implementation in Omnibox
+  * Medium CVE-2025-11210: Side-channel information leakage in Tab
+  * Medium CVE-2025-11211: Out of bounds read in Media
+  * Medium CVE-2025-11212: Inappropriate implementation in Media
+  * Medium CVE-2025-11213: Inappropriate implementation in Omnibox
+  * Medium CVE-2025-11215: Off by one error in V8
+  * Low CVE-2025-11216: Inappropriate implementation in Storage
+  * Low CVE-2025-11219: Use after free in V8
+
+* Wed Sep 24 2025 Than Ngo <than@redhat.com> - 140.0.7339.207-1
+- Update to 140.0.7339.207
+  * CVE-2025-10890: Side-channel information leakage in V8
+  * CVE-2025-10891: Integer overflow in V8
+  * CVE-2025-10892: Integer overflow in V8
+
+
+* Wed Sep 17 2025 Than Ngo <than@redhat.com> - 140.0.7339.185-1
+- Update to 140.0.7339.185
+  * CVE-2025-10585: Type Confusion in V8
+  * CVE-2025-10500: Use after free in Dawn
+  * CVE-2025-10501: Use after free in WebRTC
+  * CVE-2025-10502: Heap buffer overflow in ANGLE
+
+* Thu Sep 11 2025 Than Ngo <than@redhat.com> - 140.0.7339.127-1
+- Update to 140.0.7339.127
+  * CVE-2025-10200: Use after free in Serviceworker
+  * CVE-2025-10201: Inappropriate implementation in Mojo
+
+* Wed Sep 03 2025 Than Ngo <than@redhat.com> - 140.0.7339.80-1
+- Update to 140.0.7339.80
+  * CVE-2025-9864: Use after free in V8
+  * CVE-2025-9865: Inappropriate implementation in Toolbar
+  * CVE-2025-9866: Inappropriate implementation in Extensions
+    CVE-2025-9867: Inappropriate implementation in Downloads
+
+* Thu Aug 28 2025 Than Ngo <than@redhat.com> - 139.0.7258.154-1
+- Update to 139.0.7258.154
+  * CVE-2025-9478: Use after free in ANGLE
+
+* Fri Aug 22 2025 Than Ngo <than@redhat.com> - 139.0.7258.138-1
+- Updated to 139.0.7258.138
+  * CVE-2025-9132: Out of bounds write in V8
+
+* Wed Aug 20 2025 Dominik Mierzejewski <dominik@greysector.net> - 139.0.7258.127-2
+- Drop unused yasm build dependency
+  see https://fedoraproject.org/wiki/Changes/DeprecateYASM
+
+* Wed Aug 13 2025 Than Ngo <than@redhat.com> - 139.0.7258.127-1
+- Updated to 139.0.7258.127
+  * CVE-2025-8879: Heap buffer overflow in libaom
+  * CVE-2025-8880: Race in V8
+  * CVE-2025-8901: Out of bounds write in ANGLE
+  * CVE-2025-8881: Inappropriate implementation in File Picker
+  * CVE-2025-8882: Use after free in Aura
+
+* Tue Aug 05 2025 Than Ngo <than@redhat.com> - 139.0.7258.66-1
+- Updated to 139.0.7258.66
+  * CVE-2025-8576: Use after free in Extensions
+  * CVE-2025-8578: Use after free in Cast
+  * CVE-2025-8579: Inappropriate implementation in Gemini Live in Chrome
+  * CVE-2025-8580: Inappropriate implementation in Filesystems
+  * CVE-2025-8581: Inappropriate implementation in Extensions
+  * CVE-2025-8582: Insufficient validation of untrusted input in DOM
+  * CVE-2025-8583: Inappropriate implementation in Permissions
+
+* Mon Aug 04 2025 Tom Stellard <tstellar@redhat.com> - 138.0.7204.183-2
+- Backport fix for build failure with clang-21
+
+* Wed Jul 30 2025 Than Ngo <than@redhat.com> - 138.0.7204.183-1
+- Update to 138.0.7204.183
+  * CVE-2025-8292: Use after free in Media Stream
+
+* Wed Jul 23 2025 Fedora Release Engineering <releng@fedoraproject.org> - 138.0.7204.168-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_43_Mass_Rebuild
+
+* Wed Jul 23 2025 Than Ngo <than@redhat.com> - 138.0.7204.168-1
+- Update to 138.0.7204.168
+  * CVE-2025-8010: Type Confusion in V8
+  * CVE-2025-8011: Type Confusion in V8
+
+* Wed Jul 16 2025 Than Ngo <than@redhat.com> - 138.0.7204.157-1
+- Update to 138.0.7204.157
+  * CVE-2025-7656: Integer overflow in V8
+  * CVE-2025-7657: Use after free in WebRTC
+  * CVE-2025-6558: Incorrect validation of untrusted input in ANGLE and GPU
+
+* Fri Jul 11 2025 Tom Stellard <tstellar@redhat.com> -138.0.7204.100-2
+- Update rust-clanglib patch for clang 21
+
+* Wed Jul 09 2025 Than Ngo <than@redhat.com> - 138.0.7204.100-1
+- Update to 138.0.7204.100
+
+* Tue Jul 01 2025 Than Ngo <than@redhat.com> - 138.0.7204.92-1
+- Update to 138.0.7204.92
+  * High CVE-2025-6554: Type Confusion in V8 
+
+* Tue Jun 24 2025 Than Ngo <than@redhat.com> - 138.0.7204.49-1
+- Update to 138.0.7204.49
+  * CVE-2025-6555: Use after free in Animation
+  * CVE-2025-6556: Insufficient policy enforcement in Loader
+  * CVE-2025-6557: Insufficient data validation in DevTools
+
+* Wed Jun 18 2025 Than Ngo <than@redhat.com> - 137.0.7151.119-1
+- Update to 137.0.7151.119
+  * CVE-2025-6191: Integer overflow in V8
+  * CVE-2025-6192: Use after free in Profiler
+
+* Wed Jun 11 2025 Than Ngo <than@redhat.com> - 137.0.7151.103-1
+- Update to 137.0.7151.103
+  * CVE-2025-5958: Use after free in Media
+  * CVE-2025-5959: Type Confusion in V8
+- Provide correct version for bundle librarires
+- Fix rhbz#2368923, Chromium crash
+
+* Tue Jun 03 2025 Than Ngo <than@redhat.com> - 137.0.7151.68-1
+- Update to 137.0.7151.68
+  * CVE-2025-5419: Out of bounds read and write in V8
+  * CVE-2025-5068: Use after free in Blink
+
+* Tue May 27 2025 Than Ngo <than@redhat.com> - 137.0.7151.55-1
+- Update to 137.0.7151.55
+  * CVE-2025-5063: Use after free in Compositing
+  * CVE-2025-5280: Out of bounds write in V8
+  * CVE-2025-5064: Inappropriate implementation in Background Fetch API
+  * CVE-2025-5065: Inappropriate implementation in FileSystemAccess API
+  * CVE-2025-5066: Inappropriate implementation in Messages
+  * CVE-2025-5281: Inappropriate implementation in BFCache
+  * CVE-2025-5283: Use after free in libvpx
+  * CVE-2025-5067: Inappropriate implementation in Tab Strip
+- Fix FTBFS caused by simdutf and pdfium-png_decoder
+- Remove chromium-135-gperf.patch and chromium-135-add-cfi-suppressions-for-pipewire-functions.patch, merged by upstream
+- Refresh ppc64le patches
+- Enable system simdutf for F43
+
+* Tue May 27 2025 Jitka Plesnikova <jplesnik@redhat.com> - 136.0.7103.113-2
+- Rebuilt for flac 1.5.0
+
+* Wed May 14 2025 Than Ngo <than@redhat.com> - 136.0.7103.113-1
+- Update to 136.0.7103.113
+  * CVE-2025-4664: Insufficient policy enforcement in Loader
+  * CVE-2025-4609: Incorrect handle provided in unspecified circumstances in Mojo
+
+* Wed May 07 2025 Than Ngo <than@redhat.com> - 136.0.7103.92-1
+- Update to 136.0.7103.92
+  * CVE-2025-4372: Use after free in WebAudio
+
+* Tue Apr 29 2025 Than Ngo <than@redhat.com> - 136.0.7103.59-1
+- Update to 136.0.7103.59
+  * CVE-2025-4096: Heap buffer overflow in HTML
+  * CVE-2025-4050: Out of bounds memory access in DevTools
+  * CVE-2025-4051: Insufficient data validation in DevTools
+  * CVE-2025-4052: Inappropriate implementation in DevTools
+
+* Thu Apr 24 2025 Than Ngo <than@redhat.com> - 136.0.7103.48-1
+- Update to 136.0.7103.48
+
+* Wed Apr 23 2025 Than Ngo <than@redhat.com> - 135.0.7049.114-1
+- Update to 135.0.7049.114
+
+* Wed Apr 16 2025 Than Ngo <than@redhat.com> - 135.0.7049.95-1
+- Update to 135.0.7049.95
+  * CVE-2025-3619: Heap buffer overflow in Codecs
+  * CVE-2025-3620: Use after free in USB
+
+* Wed Apr 09 2025 Than Ngo <than@redhat.com> - 135.0.7049.84-1
+- Update to 135.0.7049.84
+  * CVE-2025-3066: Use after free in Site Isolation
+
+* Wed Apr 02 2025 Jan Grulich <jgrulich@redhat.com> - 135.0.7049.52-2
+- Add CFI suppressions for inline PipeWire functions
+
+* Tue Apr 01 2025 Than Ngo <than@redhat.com> - 135.0.7049.52-1
+- Update to 135.0.7049.52
+
+* Fri Mar 28 2025 Than Ngo <than@redhat.com> - 135.0.7049.41-1
+- Update to 135.0.7049.41
+
+* Mon Mar 24 2025 Than Ngo <than@redhat.com> - 134.0.6998.165-1
+- Update to 134.0.6998.165
+- Fixed rhbz#2354377 - Enable ppc64le support for el10
+
+* Thu Mar 20 2025 Than Ngo <than@redhat.com> -  134.0.6998.117-1
+- Update to 134.0.6998.117
+  * Critical CVE-2025-2476: Use after free in Lens
+
+* Mon Mar 17 2025 Than Ngo <than@redhat.com> -  134.0.6998.88-4
+- Fixed rhbz#2352698, rebuild for noopenh264 2.6.0
+
+* Fri Mar 14 2025 Than Ngo <than@redhat.com> -  134.0.6998.88-3
+- Fixed build errors on ppc64le
+
+* Thu Mar 13 2025 Fabio Valentini <decathorpe@gmail.com> - 134.0.6998.88-2
+- Rebuild for noopenh264 2.6.0
+
+* Tue Mar 11 2025 Than Ngo <than@redhat.com> -  134.0.6998.88-1
+- Update to 134.0.6998.88
+  * High CVE-2025-1920: Type Confusion in V8
+  * High CVE-2025-2135: Type Confusion in V8
+  * High CVE-TBD: Out of bounds write in GPU
+  * Medium CVE-2025-2136: Use after free in Inspector
+  * Medium CVE-2025-2137: Out of bounds read in V8
+
+* Wed Mar 05 2025 Than Ngo <than@redhat.com> -  134.0.6998.35-1
+- Update to 134.0.6998.35
+  * CVE-2025-1914: Out of bounds read in V8
+  * CVE-2025-1915: Improper Limitation of a Pathname to a Restricted Directory in DevTools
+  * CVE-2025-1916: Use after free in Profiles
+  * CVE-2025-1917: Inappropriate Implementation in Browser UI
+  * CVE-2025-1918: Out of bounds read in PDFium
+  * CVE-2025-1919: Out of bounds read in Media
+  * CVE-2025-1921: Inappropriate Implementation in Media Stream
+  * CVE-2025-1922: Inappropriate Implementation in Selection
+  * CVE-2025-1923: Inappropriate Implementation in Permission Prompts
+
 * Wed Feb 26 2025 Than Ngo <than@redhat.com> - 133.0.6943.141-1
 - Update to 133.0.6943.141
 
