@@ -1,134 +1,92 @@
-# FROM quay.io/almalinuxorg/almalinux:8.10 as libffi-builder
-FROM registry.access.redhat.com/ubi8/ubi:8.10 as libffi-builder
+FROM ubuntu:22.04
 
-RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm && \
-    /usr/bin/crb enable && \
-    dnf config-manager --enable "codeready-builder-for-rhel-8-$(arch)-rpms" && \
-    dnf install -y autoconf2.7x automake git make gcc-c++ libtool texinfo && \
-    rm /usr/bin/autoconf && \
-    rm /usr/bin/autoreconf && \
-    ln -s /usr/bin/autoconf27 /usr/bin/autoconf && \
-    ln -s /usr/bin/autoreconf27 /usr/bin/autoreconf
+RUN groupadd --gid 999 builduser \
+  && useradd --uid 999 --gid builduser --shell /bin/bash --create-home builduser \
+  && mkdir -p /setup
 
-RUN git clone --depth 1 --branch v3.4.4 https://github.com/libffi/libffi.git /opt/libffi-tmp && \
-    cd /opt/libffi-tmp && \
-    ./autogen.sh && \
-    ./configure --prefix=/usr/ --enable-static --with-pic --disable-shared && \
-    make -j$(nproc) && \
-    cp ./*/.libs/libffi_convenience.a /usr/lib64/libffi_pic.a && \
-    rm -rf /opt/libffi-tmp
+# Set up TEMP directory
+ENV TEMP=/tmp
+RUN chmod a+rwx /tmp
 
-# FROM quay.io/almalinuxorg/almalinux:8.10
-FROM registry.access.redhat.com/ubi8/nodejs-22:latest
+# Install Linux packages
+ADD tools/install-deps.sh /tmp/
+ADD tools/azure_cli_deb_install.sh /tmp/
+ADD patches/chromium-install-build-deps-ppc64le.patch /tmp/
+RUN bash /tmp/install-deps.sh --ppc64le
 
-USER root
+# Add xvfb init script
+ADD tools/xvfb-init.sh /etc/init.d/xvfb
+RUN chmod a+x /etc/init.d/xvfb
 
-RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm && \
-    /usr/bin/crb enable && \
-    dnf config-manager --enable "codeready-builder-for-rhel-8-$(arch)-rpms" && \
-    dnf install -y  clang \
-    clang-tools-extra \
-    llvm \
-    lld \
-    rustc \
-    bindgen-cli \
-    alsa-lib-devel \
-    atk-devel \
-    bison \
-    cups-devel \
-    dbus-devel \
-    desktop-file-utils \
-    expat-devel \
-    flex \
-    fontconfig-devel \
-    glib2-devel \
-    glibc-devel \
-    gperf \
-    compiler-rt \
-    libatomic \
-    libcap-devel \
-    libcurl-devel \
-    libdrm-devel \
-    libgcrypt-devel \
-    libudev-devel \
-    libuuid-devel \
-    libusb-devel \
-    libutempter-devel \
-    libXdamage-devel \
-    libXtst-devel \
-    xcb-proto \
-    mesa-libgbm-devel \
-    nss-devel \
-    pciutils-devel \
-    pulseaudio-libs-devel \
-    libappstream-glib \
-    bzip2-devel \
-    dbus-glib-devel \
-    elfutils \
-    elfutils-libelf-devel \
-    /usr/bin/git \
-    hwdata \
-    kernel-headers \
-    libffi-devel \
-    libxshmfence-devel \
-    mesa-libGL-devel \
-    "pkgconfig(gtk+-3.0)" \
-    /usr/bin/python3.12 \
-    /usr/bin/pip-3.12 \
-    re2-devel \
-    speech-dispatcher-devel \
-    yasm \
-    zlib-devel \
-    pam-devel \
-    systemd \
-    ninja-build \
-    java-1.8.0-openjdk-headless \
-    libevdev-devel \
-    xz \
-    patch \
-    wget \
-    nano \
-    libpng-devel \
-    libnotify-devel \
-    gcc-toolset-13-libatomic-devel \
-    yarnpkg \
-    binutils-powerpc64le-linux-gnu \
-    cpio \
-    double-conversion-devel \
-    flac-devel \
-    highway-devel \
-    lcms2-devel \
-    libXNVCtrl-devel \
-    libsecret-devel \
-    libxslt-devel \
-    opus-devel \
-    zip
-
-RUN pip-3.12 install 'httplib2===0.22.0' six && \
-    alternatives --set python /usr/bin/python3.12 && \
-    alternatives --set python3 /usr/bin/python3.12
+RUN apt update && apt install -y elfutils ninja-build clang
+RUN mkdir -p /usr/local/lib/node_modules && chown -R builduser:builduser /usr/local/lib/node_modules && chown -R builduser:builduser /usr/local/bin
 
 RUN --mount=type=bind,source=patches/fix-depot-tools.patch,dst=/tmp/fix-depot-tools.patch \
     git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git /opt/depot_tools && \
     cd /opt/depot_tools && \
     patch -p1 -i /tmp/fix-depot-tools.patch && \
-    echo '../../usr/bin' > /opt/depot_tools/python3_bin_reldir.txt
+    echo '../../usr/bin' > /opt/depot_tools/python3_bin_reldir.txt && \
+    chown -R builduser:builduser /opt/depot_tools
 
 RUN --mount=type=bind,source=patches/fix-gn.patch,dst=/tmp/fix-gn.patch \
     git clone https://gn.googlesource.com/gn /opt/gn && \
     cd /opt/gn && \
-    patch -p1 -i /tmp/fix-gn.patch && \
-    python3 build/gen.py && \
-    ninja -j $(nproc) -C out
+    patch -p1 -i /tmp/fix-gn.patch
 
-COPY --from=libffi-builder /usr/lib64/libffi_pic.a /usr/lib64/libffi_pic.a
+RUN rm -rf /var/lib/apt/lists/*
 
-RUN cd / && \
-    ln -sf ./usr/bin && \
-    ln -sf ./usr/sbin && \
-    ln -sf ./usr/lib && \
-    ln -sf ./usr/lib64 && \
-    ln -sf ../../lib64/pkgconfig /usr/lib/pkgconfig
+USER builduser
+
+# Configure build-tools
+RUN rm -rf /home/builduser/.electron_build_tools && \
+	git clone https://github.com/electron/build-tools.git /home/builduser/.electron_build_tools && \
+	cd /home/builduser/.electron_build_tools && \
+  node --version && \
+	npx --yes yarn && \
+	sudo locale-gen "en_US.UTF-8"
+
+# Build Python 3.12 from source
+RUN sudo apt update && sudo apt install -y \
+    build-essential \
+    libssl-dev \
+    zlib1g-dev \
+    libncurses5-dev \
+    libncursesw5-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    libgdbm-dev \
+    libdb5.3-dev \
+    libbz2-dev \
+    libexpat1-dev \
+    liblzma-dev \
+    libffi-dev \
+    uuid-dev \
+    python3-pip \
+    wget && \
+    cd /tmp && \
+    wget https://www.python.org/ftp/python/3.12.8/Python-3.12.8.tgz && \
+    tar -xzf Python-3.12.8.tgz && \
+    cd Python-3.12.8 && \
+    ./configure --enable-optimizations --prefix=/usr && \
+    make -j$(nproc) && \
+    sudo make install && \
+    cd /tmp && \
+    sudo rm -rf Python-3.12.8 Python-3.12.8.tgz && \
+    python3.12 --version
+
+RUN pip3 install 'httplib2===0.22.0' six requests
+
+ARG CMAKE_VERSION=3.26.4
+RUN curl -L "https://cmake.org/files/v3.26/cmake-${CMAKE_VERSION}.tar.gz" | tar -xz -C /tmp \
+    && cd /tmp/cmake-${CMAKE_VERSION} \
+    && ./bootstrap --parallel=$(nproc) --prefix=/usr/local \
+    && make -j$(nproc) \
+    && sudo make install \
+    && cd / \
+    && sudo rm -rf /tmp/cmake-${CMAKE_VERSION}
+
+RUN sudo apt update && sudo apt install -y lld ccache
 
 ENV PATH="/opt/depot_tools:/opt/gn/out:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
+WORKDIR /home/builduser

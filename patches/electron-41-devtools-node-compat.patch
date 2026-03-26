@@ -1,0 +1,13 @@
+diff --git a/third_party/devtools-frontend/src/scripts/build/generate_css_js_files.js b/third_party/devtools-frontend/src/scripts/build/generate_css_js_files.js
+index 3d99fac3e1..97aa800dc3 100644
+--- a/scripts/build/generate_css_js_files.js
++++ b/scripts/build/generate_css_js_files.js
+@@ -80,6 +80,7 @@ async function runMain() {
+   );
+ }
+ 
+-if (import.meta.main) {
++// Node.js doesn't support import.meta.main, use alternative check for main module
++if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1])) {
+   runMain();
+ }

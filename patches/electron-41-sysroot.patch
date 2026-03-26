@@ -1,0 +1,13 @@
+diff --git a/build/config/sysroot.gni b/build/config/sysroot.gni
+index e7aaa18479d47..72c29a36b4b12 100644
+--- a/build/config/sysroot.gni
++++ b/build/config/sysroot.gni
+@@ -46,6 +46,8 @@ if (sysroot == "") {
+       sysroot = "$target_sysroot_dir/debian_bullseye_arm64-sysroot"
+     } else if (current_cpu == "riscv64") {
+       sysroot = "$target_sysroot_dir/debian_trixie_riscv64-sysroot"
++    } else if (current_cpu == "ppc64") {
++      sysroot = "$target_sysroot_dir/debian_bullseye_ppc64el-sysroot"
+     } else {
+       assert(false, "No linux sysroot for cpu: $target_cpu")
+     }

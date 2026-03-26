@@ -1,0 +1,12 @@
+diff --git a/build/linux/sysroot_scripts/sysroot_creator.py b/build/linux/sysroot_scripts/sysroot_creator.py
+index 2d120b42707f6..1db534f1cf45c 100755
+--- a/build/linux/sysroot_scripts/sysroot_creator.py
++++ b/build/linux/sysroot_scripts/sysroot_creator.py
+@@ -169,6 +169,7 @@ DEBIAN_PACKAGES = [
+     "qt6-base-dev",
+     "qtbase5-dev",
+     "valgrind-if-available",
++    "libnotify-dev",
+ ]
+ 
+ 

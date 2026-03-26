@@ -2,9 +2,9 @@
 # -----------------------------------------------------------------------------
 #
 # Package         : Electron
-# Version         : 39.2.7
+# Version         : 41.0.3
 # Source repo     : https://github.com/electron/electron
-# Tested on       : RHEL 8.10
+# Tested on       : Ubuntu 22.04
 # Language        : C++
 # Travis-Check    : false
 # Script License  : Apache License, Version 2 or later
@@ -20,16 +20,94 @@
 
 # shellcheck disable=SC2034
 PACKAGE_NAME="electron"
-PACKAGE_VERSION=${1:-"v39.2.7"}
+PACKAGE_VERSION=${1:-"v41.0.3"}
 PACKAGE_URL="https://github.com/electron/electron"
+BUILD_TYPE="release"
+APPLY_PATCHES=1
+DO_CHECKOUT=1
+DO_SYSROOT=1
+PACKAGE_VERSION_SET=0
+
+export PATH="$PATH:$buildtools/src"
+
+usage() {
+  cat <<'EOF'
+Usage: build-electron.sh [version] [options]
+
+Options:
+  --without-patches           Skip applying bundled patch sets
+  --skip-checkout             Skip gclient config/sync
+  --build-type {release|testing}  Choose build args target (default: release)
+  -h, --help                  Show this help message and exit
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --without-patches)
+      APPLY_PATCHES=0
+      shift
+      ;;
+    --skip-checkout)
+      DO_CHECKOUT=0
+      shift
+      ;;
+    --skip-sysroot)
+      DO_SYSROOT=0
+      shift
+      ;;
+    --build-type)
+      if [[ -n "${2:-}" ]]; then
+        BUILD_TYPE="$2"
+        shift 2
+      else
+        echo "--build-type requires a value (release|testing)" >&2
+        usage
+        exit 1
+      fi
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
+      echo "Unknown option: $1" >&2
+      usage
+      exit 1
+      ;;
+    *)
+      if [[ ${PACKAGE_VERSION_SET} -eq 0 ]]; then
+        PACKAGE_VERSION="$1"
+        PACKAGE_VERSION_SET=1
+        shift
+      else
+        echo "Unexpected positional argument: $1" >&2
+        usage
+        exit 1
+      fi
+      ;;
+  esac
+done
+
+case "${BUILD_TYPE}" in
+  release|testing) ;;
+  *)
+    echo "Unsupported build type: ${BUILD_TYPE}" >&2
+    exit 1
+    ;;
+esac
 
 set -eux
 
-build_dir="${BUILD_DIRECTORY:-"${PWD}/build"}"
+build_dir="${BUILD_DIRECTORY:-"${PWD}/gclient"}"
 patches_dir="${PWD}/patches"
 electron_src="${build_dir}/src"
-electron_out="${electron_src}/out/Default"
-export ELECTRON_OUT_DIR="Default"
+electron_out="${electron_src}/out/${BUILD_TYPE^}"
+export ELECTRON_OUT_DIR="${BUILD_TYPE^}"
 assets_dir="${PWD}/assets"
 
 export DEPOT_TOOLS_UPDATE=0
@@ -39,140 +117,168 @@ export GIT_CACHE_PATH="${GIT_CACHE_PATH:-${PWD}/.git_cache}"
 # need for error: the option `Z` is only accepted on the nightly compiler
 export RUSTC_BOOTSTRAP=1
 
-# set rustc version
-rustc_version="$(rustc --version)"
-# set rust bindgen root
-rust_bindgen_root="/usr"
+# Checkout source
+if [ "${DO_CHECKOUT}" -eq 1 ]; then
+  if [ ! -d "${build_dir}" ]; then
+    mkdir -p "${build_dir}"
+  fi
+  cd "${build_dir}"
+
+  gclient config --name src/electron --unmanaged "${PACKAGE_URL}@${PACKAGE_VERSION}" --custom-var checkout_pgo_profiles=False
+  gclient sync --with_branch_heads --with_tags -vv
+  exit
+else
+  if [ ! -d "${electron_src}" ]; then
+    echo "--skip-checkout specified but ${electron_src} is missing" >&2
+    exit 1
+  fi
+fi
+
+cd "${electron_src}"
+
+if [ "${APPLY_PATCHES}" -eq 1 ]; then
+  # Timothy Pearson's patchset
+  # https://gitlab.raptorengineering.com/raptor-engineering-public/chromium/openpower-patches
+  # Note(lex-ibm): We could automate getting the patches from the above URL, but after some discussions we decided it is better
+  # to have the patches in the same repository for better control/visibility.
+  while IFS= read -r patch; do
+    if [[ $patch =~ ^ppc64le ]]; then
+      patch -p1 -i "${patches_dir}/openpower-patches/${patch}"
+    fi
+  done <"${patches_dir}"/openpower-patches/series
+
+  # Electron PowerPC64 Little Endian support
+  patch -p1 -i "${patches_dir}"/electron-32-002-fix-ppc64-syscalls-headers.patch
+  patch -p1 -i "${patches_dir}"/electron-32-004-libpng.patch
+  patch -p1 -i "${patches_dir}"/electron-39-001-fix-runtime-api-delegate.patch
+  patch -p1 -i "${patches_dir}"/electron-39-001-fix-fontconfig.patch
+  patch -p1 -i "${patches_dir}"/electron-39-001-fix-webrtc.patch
+  patch -p1 -i "${patches_dir}"/electron-41-sysroot-creator.patch
+  patch -p1 -i "${patches_dir}"/electron-41-clang-build.patch
+  patch -p1 -i "${patches_dir}"/electron-41-rust-build.patch
+  patch -p1 -i "${patches_dir}"/electron-41-remove-variations-test-data.patch
+  patch -p1 -i "${patches_dir}"/electron-41-sysroot.patch
+  patch -p1 -i "${patches_dir}"/electron-41-devtools-node-compat.patch
+  patch -p1 -i "${patches_dir}"/electron-41-swiftshader.patch
+fi
+
+## Build sysroot
+
+cd "${electron_src}"
+
+if [ "${DO_SYSROOT}" -eq 1 ]; then
+  ./build/linux/sysroot_scripts/sysroot_creator.py build ppc64el
+  mkdir -p build/linux/debian_bullseye_ppc64el-sysroot
+  tar xf out/sysroot-build/bullseye/debian_bullseye_ppc64el_sysroot.tar.xz -C build/linux/debian_bullseye_ppc64el-sysroot
+else
+  if [ -f out/sysroot-build/bullseye/debian_bullseye_ppc64el_sysroot.tar.xz ]; then
+      echo "Using prebuilt sysroot" >&2
+      tar xf out/sysroot-build/bullseye/debian_bullseye_ppc64el_sysroot.tar.xz -C build/linux/debian_bullseye_ppc64el-sysroot
+  elif [ ! -d "build/linux/debian_bullseye_ppc64el-sysroot" ]; then
+    echo "--skip-sysroot specified but sysroot is missing" >&2
+    exit 1
+  fi
+fi
+
+## Build clang
+
+tools/clang/scripts/build.py --use-system-cmake --with-ml-inliner-model='' --without-android --without-fuchsia --host-cc=/usr/bin/clang --host-cxx=/usr/bin/clang++ --bootstrap
+
+## Build openssl 1.1.1
+mkdir -p out/openssl
+curl -L "https://github.com/openssl/openssl/releases/download/OpenSSL_1_1_1/openssl-1.1.1.tar.gz" | tar xzf - -C out/openssl --strip-components=1
+
+cd out/openssl
+./config --prefix="${electron_src}"/third_party/llvm-build-tools/openssl \
+  --openssldir="${electron_src}"/third_party/llvm-build-tools/openssl \
+  no-shared \
+  no-tests
+make -j "$(nproc)"
+make install_sw install_ssldirs
+
+cd "${electron_src}"
+
+cp third_party/llvm-build-tools/openssl/lib/libssl.a third_party/llvm-build-tools/debian_bullseye_ppc64le_sysroot/usr/lib/powerpc64le-linux-gnu/
+
+## Extract libstdc++.a for ppc64le
+mkdir -p out/libstdcpp-extract
+cd out/libstdcpp-extract
+curl -L "http://ftp.us.debian.org/debian/pool/main/g/gcc-10-cross/libstdc++-10-dev-ppc64el-cross_10.2.1-6cross1_all.deb" -o libstdc++-10-dev-ppc64el-cross.deb
+ar x libstdc++-10-dev-ppc64el-cross.deb
+tar xf data.tar.xz
+cp usr/lib/gcc-cross/powerpc64le-linux-gnu/10/libstdc++.a ../../third_party/llvm-build-tools/debian_bullseye_ppc64le_sysroot/usr/lib/powerpc64le-linux-gnu/
+cd "${electron_src}"
+
+
+export CC="${electron_src}"/third_party/llvm-build/Release+Asserts/bin/clang
+export CXX="${electron_src}"/third_party/llvm-build/Release+Asserts/bin/clang++
+export AR="${electron_src}"/third_party/llvm-build/Release+Asserts/bin/llvm-ar
+export NM="${electron_src}"/third_party/llvm-build/Release+Asserts/bin/llvm-nm
+export READELF="${electron_src}"/third_party/llvm-build/Release+Asserts/bin/llvm-readelf
+
+## Build ncurses 6.0
+mkdir -p out/ncurses
+curl -L "https://stuff.mit.edu/afs/sipb/project/ncurses/releases/ncurses-6.0.tar.gz" | tar xzf - -C out/ncurses --strip-components=1
+
+cd out/ncurses
+
+export CXXFLAGS="-std=c++11"
+./configure --prefix="${electron_src}"/third_party/llvm-build-tools/ncursesw \
+  --enable-widec \
+  --with-shared=no \
+  --with-normal \
+  --with-debug \
+  --with-cxx-binding \
+  --with-cxx \
+  --enable-pc-files \
+  --with-pkg-config-libdir="${electron_src}"/third_party/llvm-build-tools/ncursesw/lib/pkgconfig \
+  --without-ada \
+  --without-manpages \
+  --without-tests
+
+make -j "$(nproc)"
+make install
+
+unset CXXFLAGS
+
+## Build GN
+
+pushd /opt/gn
+sudo -E python3 build/gen.py
+sudo -E ninja -j $(nproc) -C out
+popd
+
+cd "${electron_src}"
+
+## Build rust
+
+git config --global user.email "builduser@ibm.com"
+git config --global user.name "builduser"
+
+export CARGO_PROFILE_RELEASE_OPT_LEVEL=0
+tools/rust/build_rust.py --skip-test --entire-toolchain
 
 # set clang version
-clang_version="$(clang --version | sed -n 's/clang version //p' | cut -d. -f1)"
-clang_base_path="$(clang --version | grep InstalledDir | cut -d' ' -f2 | sed 's#/bin##')"
+clang_version="$($electron_src/third_party/llvm-build/Release+Asserts/bin/clang --version | sed -n 's/clang version //p' | cut -d. -f1)"
+clang_base_path="$($electron_src/third_party/llvm-build/Release+Asserts/bin/clang --version | grep InstalledDir | cut -d' ' -f2 | sed 's#/bin##')"
 
 ELECTRON_GN_DEFINES+=' chrome_pgo_phase=0'
 
 ELECTRON_GN_DEFINES+=' is_clang=true'
 ELECTRON_GN_DEFINES+=" clang_base_path=\"$clang_base_path\""
 ELECTRON_GN_DEFINES+=" clang_version=$clang_version"
-ELECTRON_GN_DEFINES+=' clang_use_chrome_plugins=false'
-ELECTRON_GN_DEFINES+=' use_lld=true'
-
-# enable system rust
-ELECTRON_GN_DEFINES+=' rust_sysroot_absolute="/usr"'
-ELECTRON_GN_DEFINES+=" rust_bindgen_root=\"$rust_bindgen_root\""
-ELECTRON_GN_DEFINES+=" rustc_version=\"$rustc_version\""
-
-ELECTRON_GN_DEFINES+=' rtc_use_pipewire=false rtc_link_pipewire=false'
-
+# ELECTRON_GN_DEFINES+=" dcheck_always_on=false is_debug=false is_official_build=false symbol_level=2"
 ELECTRON_GN_DEFINES+=' target_cpu="ppc64"'
-if [ "$(arch)" != "ppc64le" ]; then
-  ELECTRON_GN_DEFINES+=' use_sysroot=true'
-fi
-
+ELECTRON_GN_DEFINES+=' use_sysroot=true'
 ELECTRON_GN_DEFINES+=' treat_warnings_as_errors=false'
-ELECTRON_GN_DEFINES+=' use_gnome_keyring=false'
-
 ELECTRON_GN_DEFINES+=' clang_warning_suppression_file=""'
+# Disable ThinLTO on ppc64le to avoid LLVM assertion failures with Rust code
+ELECTRON_GN_DEFINES+=' use_thin_lto=false'
 
 # Create git cache directory if not already present
 if [ ! -d "${GIT_CACHE_PATH}" ]; then
   mkdir -p "${GIT_CACHE_PATH}"
 fi
-
-# Ensure that compiler-rt and rustlib are there
-if [ ! -d /usr/lib/clang/18/lib/ppc64le-redhat-linux-gnu/ ] && [ "$(arch)" != "ppc64le" ]; then
-  ln -s /sysroot/usr/lib/clang/18/lib/ppc64le-redhat-linux-gnu /usr/lib/clang/18/lib/ppc64le-redhat-linux-gnu
-fi
-if [ ! -d /usr/lib/rustlib/powerpc64le-unknown-linux-gnu/ ] && [ "$(arch)" != "ppc64le" ]; then
-  ln -s /sysroot/usr/lib/rustlib/powerpc64le-unknown-linux-gnu /usr/lib/rustlib/powerpc64le-unknown-linux-gnu
-fi
-
-# Checkout source
-
-if [ ! -d "${build_dir}" ]; then
-  mkdir -p "${build_dir}"
-fi
-cd "${build_dir}"
-
-gclient config --name src/electron --unmanaged "${PACKAGE_URL}@${PACKAGE_VERSION}" --custom-var checkout_pgo_profiles=False
-gclient sync --with_branch_heads --with_tags -vv
-
-cd "${electron_src}"
-
-# Don't use debian sysroots, even when cross-compiling
-rm -rf build/linux/debian_bullseye_*
-ln -s / build/linux/debian_bullseye_amd64-sysroot
-ln -s / build/linux/debian_bullseye_arm64-sysroot
-if [ "$(arch)" == "ppc64le" ]; then
-  ln -s / build/linux/debian_bullseye_ppc64el-sysroot
-else
-  ln -s /sysroot build/linux/debian_bullseye_ppc64el-sysroot
-fi
-
-# Timothy Pearson's patchset
-# https://gitlab.raptorengineering.com/raptor-engineering-public/chromium/openpower-patches
-# Note(lex-ibm): We could automate getting the patches from the above URL, but after some discussions we decided it is better
-# to have the patches in the same repository for better control/visibility.
-while IFS= read -r patch; do
-  if [[ $patch =~ ^ppc64le ]]; then
-    patch -p1 < "${patches_dir}/openpower-patches/${patch}"
-  fi
-done <"${patches_dir}"/openpower-patches/series
-
-# EPEL8 (and EPEL9) Chromium patches
-# https://src.fedoraproject.org/rpms/chromium
-patch -p1 < "${patches_dir}"/fedora/chromium-117-widevine-other-locations.patch # Patch8 P8
-patch -p1 < "${patches_dir}"/fedora/chromium-disable-font-tests.patch # Patch20 P20
-patch -p1 < "${patches_dir}"/fedora/chromium-123-screen-ai-service.patch # Patch21 P21
-patch -p1 < "${patches_dir}"/fedora/chromium-98.0.4758.102-remoting-no-tests.patch # Patch82 P82
-patch -p1 < "${patches_dir}"/fedora/chromium-138-checkversion-nodejs.patch # Patch92 P92
-patch -p1 < "${patches_dir}"/fedora/chromium-141-csss_style_sheet.patch # Patch93 P93
-patch -Rp1 < "${patches_dir}"/fedora/chromium-141-revert-remove-darkmode-image-policy.patch # Patch94 P94 (reverse apply)
-patch -p1 < "${patches_dir}"/fedora/chromium-142-crabbyavif-ftbfs-old-rust.patch # Patch96 P96
-patch -p1 < "${patches_dir}"/fedora/chromium-141-glibc-2.42-SYS_SECCOMP.patch # Patch97 P97
-patch -p1 < "${patches_dir}"/fedora/chromium-107-proprietary-codecs.patch # Patch131 P131
-patch -p1 < "${patches_dir}"/fedora/chromium-118-sigtrap_system_ffmpeg.patch # Patch132 P132
-patch -p1 < "${patches_dir}"/fedora/chromium-142-el9-ffmpeg-5.1.x.patch # Patch133 P133
-patch -p1 < "${patches_dir}"/fedora/chromium-133-disable-H.264-video-parser-during-demuxing.patch # Patch135 P135
-patch -p1 < "${patches_dir}"/fedora/chromium-133-workaround-system-ffmpeg-whitelist.patch # Patch136 P136
-patch -p1 < "${patches_dir}"/fedora/chromium-118-dma_buf_export_sync_file-conflict.patch # Patch141 P141
-patch -p1 < "${patches_dir}"/fedora/chromium-142-python-3.9-ftbfs.patch # Patch142 P142
-patch -p1 < "${patches_dir}"/fedora/chromium-124-qt6.patch # Patch150 P150
-patch -p1 < "${patches_dir}"/fedora/chromium-134-el8-atk-compiler-error.patch # Patch307 P307
-patch -p1 < "${patches_dir}"/fedora/chromium-132-el8-unsupport-rustc-flags.patch # Patch309 P309
-patch -p1 < "${patches_dir}"/fedora/chromium-139-rust-FTBFS-suppress-warnings.patch # Patch310 P310
-patch -p1 < "${patches_dir}"/fedora/chromium-123-fstack-protector-strong.patch # Patch311 P311
-patch -p1 < "${patches_dir}"/fedora/chromium-142-el9-rust-no-alloc-shim-is-unstable.patch # Patch312 P312
-patch -p1 < "${patches_dir}"/fedora/chromium-142-el9-rust_alloc_error_handler_should_panic.patch # Patch313 P313
-patch -p1 < "${patches_dir}"/fedora/chromium-122-clang-build-flags.patch # Patch316 P316
-patch -p1 < "${patches_dir}"/fedora/chromium-142-clang++-unknown-argument.patch # Patch317 P317
-patch -p1 < "${patches_dir}"/fedora/memory-allocator-dcheck-assert-fix.patch # Patch318 P318
-patch -p1 < "${patches_dir}"/fedora/chromium-142-split-threshold-for-reg-with-hint.patch # Patch354 P354
-patch -p1 < "${patches_dir}"/fedora/chromium-130-hardware_destructive_interference_size.patch # Patch355 P355
-patch -p1 < "${patches_dir}"/fedora/chromium-141-use_libcxx_modules.patch # Patch356 P356
-patch -p1 < "${patches_dir}"/fedora/chromium-134-type-mismatch-error.patch # Patch357 P357
-patch -p1 < "${patches_dir}"/fedora/chromium-141-rust-clanglib.patch # Patch358 P358
-patch -p1 < "${patches_dir}"/fedora/0001-swiftshader-fix-build.patch # Patch383 P383
-patch -p1 < "${patches_dir}"/fedora/fix-page-allocator-overflow.patch # Patch409 P409
-patch -p1 < "${patches_dir}"/fedora/chromium-142-missing-include-for-form_field_data.patch # Patch1000 P1000
-patch -p1 < "${patches_dir}"/fedora/chromium-142-Add-ExtractData-support-for-text-uri-list.patch # Patch1001 P1001
-patch -p1 < "${patches_dir}"/fedora/chromium-142-Update-pointer-position-during-draggin.patch # Patch1002 P1002
-
-# Electron PowerPC64 Little Endian support
-patch -p1 < "${patches_dir}"/electron-32-002-fix-ppc64-syscalls-headers.patch
-patch -p1 < "${patches_dir}"/electron-32-004-libpng.patch
-patch -p1 < "${patches_dir}"/electron-39-001-fix-runtime-api-delegate.patch
-patch -p1 < "${patches_dir}"/electron-39-001-fix-fontconfig.patch
-patch -p1 < "${patches_dir}"/electron-39-001-fix-webrtc.patch
-
-# Export variables
-export CC=clang
-export CXX=clang++
-export AR=llvm-ar
-export NM=llvm-nm
-export READELF=llvm-readelf
-
-CXXFLAGS+=' -faltivec-src-compat=mixed -Wno-deprecated-altivec-src-compat'
-export CXXFLAGS
 
 # Build
 cd "${electron_src}"
@@ -181,12 +287,22 @@ cp "$(command -v node)" third_party/node/linux/node-linux-x64/bin/node
 chmod +x third_party/node/linux/node-linux-x64/bin/node
 
 rm -rf third_party/openscreen/src/buildtools/third_party/eu-strip/bin/eu-strip
+mkdir -p third_party/openscreen/src/buildtools/third_party/eu-strip/bin/
 cp "$(command -v eu-strip)" third_party/openscreen/src/buildtools/third_party/eu-strip/bin/eu-strip
 
-gn gen "${electron_out}" --args="import(\"//electron/build/args/release.gn\") ${ELECTRON_GN_DEFINES}"
+npm install -g esbuild@0.25.1
+mkdir -p third_party/devtools-frontend/src/third_party/esbuild/
+cp /usr/local/lib/node_modules/esbuild/bin/esbuild third_party/devtools-frontend/src/third_party/esbuild/esbuild
+
+#unpack rollup binary for ppc64le
+mkdir -p third_party/devtools-frontend/src/node_modules/@rollup/rollup-linux-powerpc64le-gnu
+curl -L https://npm.skia.org/chrome-devtools/@rollup%2frollup-linux-powerpc64le-gnu/-/rollup-linux-powerpc64le-gnu-4.22.4.tgz | tar -xvzf - --strip-components=1 -C third_party/devtools-frontend/src/node_modules/@rollup/rollup-linux-powerpc64le-gnu
+
+
+gn gen "${electron_out}" --args="import(\"//electron/build/args/${BUILD_TYPE}.gn\") ${ELECTRON_GN_DEFINES}"
 
 # Build Electron
-NINJA_SUMMARIZE_BUILD=1 ninja -j "$(nproc)" -C "${electron_out}" electron:release_build
+NINJA_SUMMARIZE_BUILD=1 ninja -j "$(nproc)" -C "${electron_out}" "electron:${BUILD_TYPE}_build"
 cp "${electron_out}/.ninja_log" "${electron_src}/out/electron_ninja_log"
 node electron/script/check-symlinks.js
 
@@ -204,10 +320,9 @@ ninja -j "$(nproc)" -C "${electron_out}" electron:electron_chromedriver_zip
 # Generate & Zip Symbols
 DELETE_DSYMS_AFTER_ZIP=1 electron/script/zip-symbols.py -b "${electron_out}"
 
-# ToDo: Something is failing in this step. Skipping until fixed
-# # Generate FFMpeg
-# gn gen "${electron_out}/../ffmpeg" --args="import(\"//electron/build/args/ffmpeg.gn\") ${ELECTRON_GN_DEFINES}"
-# ninja -j "$(nproc)" -C "${electron_out}/../ffmpeg" electron:electron_ffmpeg_zip
+# Generate FFMpeg
+gn gen "${electron_out}/../ffmpeg" --args="import(\"//electron/build/args/ffmpeg.gn\") ${ELECTRON_GN_DEFINES}"
+ninja -j "$(nproc)" -C "${electron_out}/../ffmpeg" electron:electron_ffmpeg_zip
 
 # Generate TypeScript Definitions
 cd "${electron_src}"/electron

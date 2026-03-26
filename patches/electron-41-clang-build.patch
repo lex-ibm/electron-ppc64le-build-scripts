@@ -1,0 +1,111 @@
+diff --git a/tools/clang/scripts/build.py b/tools/clang/scripts/build.py
+index f76e61c12d320..8f7b86f5d235c 100755
+--- a/tools/clang/scripts/build.py
++++ b/tools/clang/scripts/build.py
+@@ -266,8 +266,8 @@ def AddCMakeToPath():
+     zip_name = 'cmake-3.26.4-macos-universal.tar.gz'
+     dir_name = ['cmake-3.26.4-macos-universal', 'CMake.app', 'Contents', 'bin']
+   else:
+-    zip_name = 'cmake-3.26.4-linux-x86_64.tar.gz'
+-    dir_name = ['cmake-3.26.4-linux-x86_64', 'bin']
++    zip_name = 'cmake-3.26.4-linux-ppc64le.tar.gz'
++    dir_name = ['cmake-3.26.4-linux-ppc64le', 'bin']
+ 
+   cmake_dir = os.path.join(LLVM_BUILD_TOOLS_DIR, *dir_name)
+   if not os.path.exists(cmake_dir):
+@@ -545,7 +545,7 @@ def VerifyZlibSupport():
+ 
+   print('Checking for zlib support')
+   clang_out = subprocess.check_output([
+-      clang, '-target', 'x86_64-unknown-linux-gnu', '-gz', '-c', '-###', '-x',
++      clang, '-target', 'powerpc64le-unknown-linux-gnu', '-gz', '-c', '-###', '-x',
+       'c', test_file
+   ],
+                                       stderr=subprocess.STDOUT,
+@@ -604,6 +604,7 @@ def DownloadDebianSysroot(platform_name, skip_download=False):
+       'arm64': '308e23faba3174bd01accfe358467b8a40fad4db4c49ef629da30219f65a275f',
+       # hash from https://chromium-review.googlesource.com/c/chromium/src/+/6603953/1/build/linux/sysroot_scripts/sysroots.json#45
+       'riscv64': '6c924a8f88bb4731f3c2334c6ae5b5da47d5ca196ff571a91071f104dbacecad',
++      'ppc64le': '485f85dde52830594f7b58ad53b9ca8ff6088b397cacb52aff682be5ffd6f198',
+   }
+ 
+   releases = {
+@@ -877,6 +878,7 @@ def main():
+       sysroot_arm = DownloadDebianSysroot('arm', args.skip_checkout)
+       sysroot_arm64 = DownloadDebianSysroot('arm64', args.skip_checkout)
+       sysroot_riscv64 = DownloadDebianSysroot('riscv64', args.skip_checkout)
++      sysroot_ppc64le = DownloadDebianSysroot('ppc64le', args.skip_checkout)
+ 
+   if args.skip_build:
+     return 0
+@@ -987,7 +989,7 @@ def main():
+       cmake_sysroot = sysroot_arm64
+     else:
+       # amd64 is the default toolchain.
+-      cmake_sysroot = sysroot_amd64
++      cmake_sysroot = sysroot_ppc64le
+     base_cmake_args.append('-DCMAKE_SYSROOT=' + cmake_sysroot)
+ 
+   if sys.platform == 'win32':
+@@ -1085,7 +1087,7 @@ def main():
+       # COMPILER_RT_BUILD_BUILTINS).
+       runtimes.append('compiler-rt')
+ 
+-    bootstrap_targets = 'X86'
++    bootstrap_targets = 'PowerPC'
+     if sys.platform == 'darwin':
+       # Need ARM and AArch64 for building the ios clang_rt.
+       bootstrap_targets += ';ARM;AArch64'
+@@ -1127,8 +1129,8 @@ def main():
+     with timer.time('bootstrap build'):
+       RunCommand(['ninja'], setenv=True)
+     # x86 mac toolchain builds are super slow, skip bootstrap tests
+-    if args.run_tests and not (platform.machine() == 'x86_64'
+-                               and sys.platform == 'darwin'):
++    if args.run_tests and not (platform.machine() == 'ppc64le'
++                               and sys.platform == 'linux'):
+       with timer.time('bootstrap check-all'):
+         RunCommand(['ninja', 'check-all'], env=test_env, setenv=True)
+     with timer.time('bootstrap install'):
+@@ -1210,7 +1212,7 @@ def main():
+       with open(training_source, 'wb') as f:
+         DownloadUrl(CDS_URL + '/' + training_source, f)
+       train_cmd = [os.path.join(LLVM_INSTRUMENTED_DIR, 'bin', 'clang++'),
+-                  '-target', 'x86_64-unknown-unknown', '-O2', '-g', '-std=c++23',
++                  '-target', 'powerpc64le-unknown-unknown', '-O2', '-g', '-std=c++23',
+                    '-fno-exceptions', '-fno-rtti', '-w', '-c', training_source]
+       if sys.platform == 'darwin':
+         train_cmd.extend(['-isysroot', isysroot])
+@@ -1302,6 +1304,9 @@ def main():
+     elif platform.machine() == 'loongarch64':
+       cmake_args.append(
+           '-DLLVM_DEFAULT_TARGET_TRIPLE=loongarch64-unknown-linux-gnu')
++    elif platform.machine() == 'ppc64le':
++      cmake_args.append(
++          '-DLLVM_DEFAULT_TARGET_TRIPLE=powerpc64le-unknown-linux-gnu')
+     else:
+       cmake_args.append('-DLLVM_DEFAULT_TARGET_TRIPLE=x86_64-unknown-linux-gnu')
+     cmake_args.append('-DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON')
+@@ -1335,6 +1340,13 @@ def main():
+         "profile": True,
+         "sanitizers": True,
+     }
++    runtimes_triples_args['powerpc64le-unknown-linux-gnu'] = {
++        "args": [
++            'CMAKE_SYSROOT=%s' % sysroot_ppc64le,
++        ],
++        "profile": True,
++        "sanitizers": True,
++    }
+     # Using "armv7a-unknown-linux-gnueabhihf" confuses the compiler-rt
+     # builtins build, since compiler-rt/cmake/builtin-config-ix.cmake
+     # doesn't include "armv7a" in its `ARM32` list.
+@@ -1617,7 +1629,7 @@ def main():
+     os.mkdir('bolt-training')
+     os.chdir('bolt-training')
+     bolt_train_cmake_args = base_cmake_args + [
+-        '-DLLVM_TARGETS_TO_BUILD=X86',
++        '-DLLVM_TARGETS_TO_BUILD=PowerPC',
+         '-DLLVM_ENABLE_PROJECTS=clang',
+         '-DCMAKE_C_FLAGS=' + ' '.join(cflags),
+         '-DCMAKE_CXX_FLAGS=' + ' '.join(cxxflags),

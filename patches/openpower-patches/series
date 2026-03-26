@@ -1,5 +1,125 @@
+debianization/manpage.patch
+debianization/sandbox.patch
+debianization/master-preferences.patch
+debianization/clang-version.patch
+debianization/swiftshader-use-llvm-16.patch
+debianization/cross-build.patch
+debianization/rustc-bootstrap.patch
+
+fixes/ps-print.patch
+fixes/widevine-locations.patch
+fixes/rust-clanglib.patch
+fixes/material-utils.patch
+fixes/gentoo-stylesheet.patch
+fixes/libcpp-headers.patch
+fixes/memory-allocator-dcheck-assert-fix.patch
+fixes/predictor-denial-of-service.patch
+fixes/fix-assert-in-vnc-sessions.patch
+fixes/armhf-timespec.patch
+fixes/updater-test.patch
+#fixes/absl-optional.patch
+#fixes/font-gc-asan.patch
+#fixes/headless-gn.patch
+#fixes/stdatomic.patch
+#fixes/make-pair.patch
+fixes/armhf-no-thumb.patch
+fixes/armhf-icf.patch
+fixes/libpng-testonly.patch
+fixes/autofill-binarypb.patch
+fixes/bindgen-paths.patch
+fixes/swiftshader-dependencies.patch
+fixes/bytemuck.patch
+fixes/missing-dep.patch
+
+upstream/profile.patch
+
+disable/tests.patch
+disable/tests-swiftshader.patch
+disable/signin.patch
+disable/android.patch
+disable/catapult.patch
+disable/font-tests.patch
+disable/google-api-warning.patch
+disable/third-party-cookies.patch
+disable/driver-chrome-path.patch
+disable/widevine-cdm-cu.patch
+disable/glic.patch
+disable/clang-version-check.patch
+disable/screen-ai-blob.patch
+disable/node-version-ck.patch
+disable/license-headless-shell.patch
+disable/enterprise-tests.patch
+disable/unrar.patch
+disable/rustc-allow-features.patch
+disable/lint.patch
+
+system/icu-shim.patch
+system/jpeg.patch
+system/openjpeg.patch
+system/opus.patch
+system/rapidjson.patch
+system/rollup.patch
+
+llvm-19/static-assert.patch
+llvm-19/keyfactory.patch
+llvm-19/clang-19-crash.patch
+llvm-19/clone-traits.patch
+llvm-19/octal.patch
+llvm-19/value-or.patch
+
+#rust-1.85/jxl-simd-avx512.patch
+#rust-1.85/jxl-features.patch
+
+#trixie/adler1.patch
+#trixie/libxml-parseerr.patch
+trixie/rust-no-alloc-shim.patch
+trixie/rust-sanitize.patch
+trixie/cookie-string-view.patch
+trixie/gn-string-hash.patch
+trixie/nodejs-set-intersection.patch
+#trixie/gn-len.patch
+#trixie/nodejs-main.patch
+
+#bookworm/strlcpy.patch
+bookworm/gn-revert-path-exists.patch
+bookworm/bindgen.patch
+bookworm/clang19.patch
+#bookworm/constflatset.patch
+bookworm/gn-allowlist.patch
+#bookworm/constexpr3.patch
+bookworm/foreach.patch
+#bookworm/node18-compat.patch
+
+# unused patches:
+# bookworm/blink-attrib.patch
+# bookworm/clang16.patch
+# bookworm/constexpr.patch
+# bookworm/lex-3way.patch
+# bookworm/more-spaceships.patch
+# bookworm/signer-lambda.patch
+# bookworm/spaceship-operator.patch
+# bookworm/traitors.patch
+# bookworm/urlhelper-ctor.patch
+# bookworm/v8-wrappable.patch
+# bullseye/av1-vaapi.patch
+# bullseye/constexpr.patch
+# bullseye/openh264.patch
+# bullseye/webui.patch
+
+llvm-22/ignore-for-ubsan.patch
+
+# patches for system libhwy-dev
+#fixes/highway-include-path.patch
+
+# Ungoogled Chromium
+#ungoogled/disable-privacy-sandbox.patch
+
+# i386 support
+i386/support-i386.patch
+
 # POWER support
 ppc64le/sandbox/0001-sandbox-Enable-seccomp_bpf-for-ppc64.patch
+ppc64le/sandbox/0009-sandbox-ignore-byte-span-error.patch
 
 ppc64le/third_party/0001-third_party-angle-Include-missing-header-cstddef-in-.patch
 ppc64le/third_party/0001-Add-PPC64-support-for-boringssl.patch
@@ -36,12 +156,13 @@ ppc64le/third_party/skia-vsx-instructions.patch
 ppc64le/breakpad/0001-Implement-support-for-ppc64-on-Linux.patch
 ppc64le/crashpad/0001-Implement-support-for-PPC64-on-Linux.patch
 ppc64le/third_party/0001-Force-baseline-POWER8-AltiVec-VSX-CPU-features-when-.patch
-ppc64le/fixes/fix-clang-selection.patch
 ppc64le/fixes/fix-rustc.patch
 ppc64le/fixes/fix-rust-linking.patch
 ppc64le/fixes/fix-breakpad-compile.patch
 ppc64le/fixes/fix-partition-alloc-compile.patch
+ppc64le/fixes/fix-page-allocator-overflow.patch
 ppc64le/fixes/fix-different-data-layouts.patch
+
 ppc64le/v8/0001-Enable-ppc64-pointer-compression.patch
 ppc64le/v8/0002-Add-ppc64-trap-instructions.patch
 
@@ -59,6 +180,31 @@ ppc64le/fixes/fix-unknown-warning-option-messages.diff
 # These patches enable full POWER ISA 3.0 (POWER9) acceleration when applied
 # They will not work on POWER8 (ISA 2.07) or below
 ppc64le/core/baseline-isa-3-0.patch
+
+# These patches enable support for loongarch64
+loongarch64/0001-loong64-core-add-loong64-architecture-to-extensions.patch
+loongarch64/0002-loong64-sandbox-Enable-seccomp_bpf-for-loongarch64.patch
+loongarch64/0003-sandbox-linux-Implement-support-for-loong64-syscalls.patch
+loongarch64/0004-loong64-sandbox-sandbox-linux-Update-syscall-helpers.patch
+loongarch64/0005-loong64-sandbox-sandbox-linux-bpf_dsl-Update-syscall.patch
+loongarch64/0006-loong64-sandbox-sandbox-linux-system_headers-Update-.patch
+loongarch64/0007-loong64-sandbox-sandbox-linux-seccomp-bpf-Add-loonga.patch
+loongarch64/0008-loong64-sandbox-sandbox-linux-services-credentials.c.patch
+loongarch64/0009-loong64-sandbox-sandbox-linux-bpf_dsl-Modify-seccomp.patch
+loongarch64/0010-loong64-sandbox-seccomp-bpf-helpers-fix-build-for-lo.patch
+loongarch64/0011-sandbox-linux-system_headers-Update-linux-seccomp-he.patch
+loongarch64/0012-sandbox-linux-add-statx-support-for-loongarch64.patch
+loongarch64/0013-swiftshader-support-for-loongarch.patch
+loongarch64/0014-crashpad-support-for-loongarch.patch
+loongarch64/0015-ffmpeg-support-for-loongarch.patch
+loongarch64/0016-medium-cmodel-support-for-loongarch64.patch
+loongarch64/0017-sys_info-add-loongarch64-architecture-string.patch
+loongarch64/0018-fix-study-crash.patch
+loongarch64/0019-boringssl-add-loongarch-support.patch
+loongarch64/0020-user_agent-add-loongarch-architecture-support.patch
+loongarch64/0021-components-metrics-add-loongarch64-support.patch
+loongarch64/0022-blink-fix-lsx-code-of-webgl_image_conversion_lsx.patch
+loongarch64/0023-loongarch64-enable-lsx-by-default.patch
 
 # Ungoogled Chromium
 

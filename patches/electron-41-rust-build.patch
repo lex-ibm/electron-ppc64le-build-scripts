@@ -1,0 +1,163 @@
+diff --git a/tools/rust/build_bindgen.py b/tools/rust/build_bindgen.py
+index df02836a96275..3a427d71ceae6 100755
+--- a/tools/rust/build_bindgen.py
++++ b/tools/rust/build_bindgen.py
+@@ -60,12 +60,13 @@ EXCLUDED_TESTS = [
+ def FetchNcurseswLibrary():
+     assert sys.platform.startswith('linux')
+     ncursesw_dir = os.path.join(LLVM_BUILD_TOOLS_DIR, 'ncursesw')
+-    ncursesw_url = (f'{CIPD_DOWNLOAD_URL}/{NCURSESW_CIPD_LINUX_AMD_PATH}'
+-                    f'/+/version:2@{NCURSESW_CIPD_LINUX_AMD_VERSION}')
+-
+-    if os.path.exists(ncursesw_dir):
+-        RmTree(ncursesw_dir)
+-    DownloadAndUnpack(ncursesw_url, ncursesw_dir, is_known_zip=True)
++    # Skip downloading for ppc64le - use pre-built ncursesw
++    # ncursesw_url = (f'{CIPD_DOWNLOAD_URL}/{NCURSESW_CIPD_LINUX_AMD_PATH}'
++    #                 f'/+/version:2@{NCURSESW_CIPD_LINUX_AMD_VERSION}')
++    #
++    # if os.path.exists(ncursesw_dir):
++    #     RmTree(ncursesw_dir)
++    # DownloadAndUnpack(ncursesw_url, ncursesw_dir, is_known_zip=True)
+     return ncursesw_dir
+ 
+ 
+@@ -140,7 +141,7 @@ def RunCargo(cargo_args):
+ 
+     if sys.platform.startswith('linux'):
+         # We use these flags to avoid linking with the system libstdc++.
+-        sysroot = DownloadDebianSysroot('amd64')
++        sysroot = DownloadDebianSysroot('ppc64le')
+         sysroot_flag = f'--sysroot={sysroot}'
+         env['CFLAGS'] += f' {sysroot_flag}'
+         env['CXXFLAGS'] += f' {sysroot_flag}'
+diff --git a/tools/rust/build_crubit.py b/tools/rust/build_crubit.py
+index 88f57c8aa2d22..ea0502d689506 100755
+--- a/tools/rust/build_crubit.py
++++ b/tools/rust/build_crubit.py
+@@ -102,6 +102,8 @@ def GetNativeLibsRustFlags():
+             f'-Clink-arg=/LIBPATH:{libxml2_lib_path}',
+             f'-Clink-arg=/LIBPATH:{zlib_lib_path}'
+         ]
++    else:
++        return []
+ 
+ 
+ def BuildCrubit(rust_sysroot, out_dir, skip_checkout):
+diff --git a/tools/rust/build_rust.py b/tools/rust/build_rust.py
+index f593cd3184c4d..f0d29f74f6ff9 100755
+--- a/tools/rust/build_rust.py
++++ b/tools/rust/build_rust.py
+@@ -184,25 +184,26 @@ def InstallRustBetaSysroot(rust_git_hash, target_triples):
+ 
+ def AddOpenSSLToEnv():
+     """Download OpenSSL, and add to OPENSSL_DIR."""
+-    ssl_dir = os.path.join(LLVM_BUILD_TOOLS_DIR, 'openssl')
+-
+-    if sys.platform == 'darwin':
+-        if platform.machine() == 'arm64':
+-            ssl_url = (f'{CIPD_DOWNLOAD_URL}/{OPENSSL_CIPD_MAC_ARM_PATH}'
+-                       f'/+/version:2@{OPENSSL_CIPD_MAC_ARM_VERSION}')
+-        else:
+-            ssl_url = (f'{CIPD_DOWNLOAD_URL}/{OPENSSL_CIPD_MAC_AMD_PATH}'
+-                       f'/+/version:2@{OPENSSL_CIPD_MAC_AMD_VERSION}')
+-    elif sys.platform == 'win32':
+-        ssl_url = (f'{CIPD_DOWNLOAD_URL}/{OPENSSL_CIPD_WIN_AMD_PATH}'
+-                   f'/+/version:2@{OPENSSL_CIPD_WIN_AMD_VERSION}')
+-    else:
+-        ssl_url = (f'{CIPD_DOWNLOAD_URL}/{OPENSSL_CIPD_LINUX_AMD_PATH}'
+-                   f'/+/version:2@{OPENSSL_CIPD_LINUX_AMD_VERSION}')
+-
+-    if os.path.exists(ssl_dir):
+-        RmTree(ssl_dir)
+-    DownloadAndUnpack(ssl_url, ssl_dir, is_known_zip=True)
++    #ssl_dir = os.path.join(LLVM_BUILD_TOOLS_DIR, 'openssl')
++    ssl_dir = '/workspaces/gclient/src/third_party/llvm-build-tools/openssl/'
++
++#    if sys.platform == 'darwin':
++#        if platform.machine() == 'arm64':
++#            ssl_url = (f'{CIPD_DOWNLOAD_URL}/{OPENSSL_CIPD_MAC_ARM_PATH}'
++#                       f'/+/version:2@{OPENSSL_CIPD_MAC_ARM_VERSION}')
++#        else:
++#            ssl_url = (f'{CIPD_DOWNLOAD_URL}/{OPENSSL_CIPD_MAC_AMD_PATH}'
++#                       f'/+/version:2@{OPENSSL_CIPD_MAC_AMD_VERSION}')
++#    elif sys.platform == 'win32':
++#        ssl_url = (f'{CIPD_DOWNLOAD_URL}/{OPENSSL_CIPD_WIN_AMD_PATH}'
++#                   f'/+/version:2@{OPENSSL_CIPD_WIN_AMD_VERSION}')
++#    else:
++#        ssl_url = (f'{CIPD_DOWNLOAD_URL}/{OPENSSL_CIPD_LINUX_AMD_PATH}'
++#                   f'/+/version:2@{OPENSSL_CIPD_LINUX_AMD_VERSION}')
++
++#    if os.path.exists(ssl_dir):
++#        RmTree(ssl_dir)
++#    DownloadAndUnpack(ssl_url, ssl_dir, is_known_zip=True)
+     os.environ['OPENSSL_DIR'] = ssl_dir
+     return ssl_dir
+ 
+@@ -574,7 +575,7 @@ def RustTargetTriple():
+     elif sys.platform == 'win32':
+         return 'x86_64-pc-windows-msvc'
+     else:
+-        return 'x86_64-unknown-linux-gnu'
++        return 'powerpc64le-unknown-linux-gnu'
+ 
+ 
+ # Build the LLVM libraries and install them .
+@@ -591,6 +592,9 @@ def BuildLLVMLibraries(skip_checkout, llvm_force_head_revision):
+         '--with-ml-inliner-model=',
+         # Not using this in Rust yet, see also crbug.com/1476464.
+         '--without-zstd',
++        '--use-system-cmake',
++        '--host-cc=/workspaces/gclient/src/third_party/llvm-build/Release+Asserts/bin/clang',
++        '--host-cxx=/workspaces/gclient/src/third_party/llvm-build/Release+Asserts/bin/clang++',
+     ]
+     if llvm_force_head_revision:
+         build_cmd.append('--llvm-force-head-revision')
+@@ -797,7 +801,7 @@ def main():
+         # Fetch sysroot we build rustc against. This ensures a minimum supported
+         # host (not Chromium target). Since the rustc linux package is for
+         # x86_64 only, that is the sole needed sysroot.
+-        debian_sysroot = DownloadDebianSysroot('amd64', args.skip_checkout)
++        debian_sysroot = DownloadDebianSysroot('ppc64le', args.skip_checkout)
+ 
+     # Require zlib compression.
+     if sys.platform == 'win32':
+@@ -910,7 +914,7 @@ def main():
+     if not args.skip_llvm_build:
+         BuildLLVMLibraries(args.skip_checkout, args.llvm_force_head_revision)
+ 
+-    AddCMakeToPath()
++#    AddCMakeToPath()
+ 
+     # Set up config.toml in Rust source tree.
+     xpy.configure()
+diff --git a/tools/rust/cargo-config.toml.template b/tools/rust/cargo-config.toml.template
+index 93b0d1164f1a1..2b6a55a43125a 100644
+--- a/tools/rust/cargo-config.toml.template
++++ b/tools/rust/cargo-config.toml.template
+@@ -21,3 +21,9 @@ host-config = true
+ # Use the same sysroot for host artifacts as target artifacts. Target rustflags
+ # are configured via environment variables.
+ rustflags = ["-Clink-arg=--sysroot=$DEBIAN_SYSROOT"]
++
++[host.powerpc64le-unknown-linux-gnu]
++# Use the same sysroot for host artifacts as target artifacts. Target rustflags
++# are configured via environment variables.
++# Reduce optimization level to avoid ICE on ppc64le
++rustflags = ["-Clink-arg=--sysroot=$DEBIAN_SYSROOT", "-Copt-level=1"]
+diff --git a/tools/rust/config.toml.template b/tools/rust/config.toml.template
+index c9f551e1bca61..49f94732fe202 100644
+--- a/tools/rust/config.toml.template
++++ b/tools/rust/config.toml.template
+@@ -89,3 +89,11 @@ cc = "$LLVM_BIN/clang"
+ cxx = "$LLVM_BIN/clang++"
+ linker = "$LLVM_BIN/clang"
+ 
++[target.powerpc64le-unknown-linux-gnu]
++llvm-config = "$LLVM_BIN/llvm-config"
++# TODO(danakj): We don't ship this in the clang toolchain package.
++# ranlib = "$LLVM_BIN/llvm-ranlib"
++ar = "$LLVM_BIN/llvm-ar"
++cc = "$LLVM_BIN/clang"
++cxx = "$LLVM_BIN/clang++"
++linker = "$LLVM_BIN/clang"

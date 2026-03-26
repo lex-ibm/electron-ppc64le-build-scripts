@@ -1,0 +1,14 @@
+--- a/setup/install-build-deps.py
++++ b/setup/install-build-deps.py
+@@ -193,7 +193,7 @@ def check_distro(options):
+ 
+ def check_architecture():
+   architecture = subprocess.check_output(["uname", "-m"]).decode().strip()
+-  if architecture not in ["i686", "x86_64", 'aarch64']:
+-    logger.error("Only x86 and ARM64 architectures are currently supported")
++  if architecture not in ["i686", "x86_64", 'aarch64', 'ppc64le']:
++    logger.error("Only x86, ARM64, and PPC64LE architectures are currently supported")
+     sys.exit(1)
+ 
+
+# Made with Bob
