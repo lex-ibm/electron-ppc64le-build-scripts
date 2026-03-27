@@ -2,7 +2,7 @@
 # -----------------------------------------------------------------------------
 #
 # Package         : Electron
-# Version         : 41.0.3
+# Version         : 39.8.0
 # Source repo     : https://github.com/electron/electron
 # Tested on       : Ubuntu 22.04
 # Language        : C++
@@ -20,7 +20,7 @@
 
 # shellcheck disable=SC2034
 PACKAGE_NAME="electron"
-PACKAGE_VERSION=${1:-"v41.0.3"}
+PACKAGE_VERSION=${1:-"v39.8.0"}
 PACKAGE_URL="https://github.com/electron/electron"
 BUILD_TYPE="release"
 APPLY_PATCHES=1
@@ -126,7 +126,6 @@ if [ "${DO_CHECKOUT}" -eq 1 ]; then
 
   gclient config --name src/electron --unmanaged "${PACKAGE_URL}@${PACKAGE_VERSION}" --custom-var checkout_pgo_profiles=False
   gclient sync --with_branch_heads --with_tags -vv
-  exit
 else
   if [ ! -d "${electron_src}" ]; then
     echo "--skip-checkout specified but ${electron_src} is missing" >&2
@@ -158,7 +157,7 @@ if [ "${APPLY_PATCHES}" -eq 1 ]; then
   patch -p1 -i "${patches_dir}"/electron-41-rust-build.patch
   patch -p1 -i "${patches_dir}"/electron-41-remove-variations-test-data.patch
   patch -p1 -i "${patches_dir}"/electron-41-sysroot.patch
-  patch -p1 -i "${patches_dir}"/electron-41-devtools-node-compat.patch
+  ##patch -p1 -i "${patches_dir}"/electron-41-devtools-node-compat.patch
   patch -p1 -i "${patches_dir}"/electron-41-swiftshader.patch
 fi
 
@@ -339,7 +338,7 @@ cp debug.zip "${assets_dir}/electron-${PACKAGE_VERSION}-linux-ppc64le-debug.zip"
 cp symbols.zip "${assets_dir}/electron-${PACKAGE_VERSION}-linux-ppc64le-symbols.zip"
 cp dist.zip "${assets_dir}/electron-${PACKAGE_VERSION}-linux-ppc64le.zip"
 cp ./gen/electron/tsc/typings/electron.d.ts "${assets_dir}/electron.d.ts"
-# cp ../ffmpeg/ffmpeg.zip "${assets_dir}/ffmpeg-${PACKAGE_VERSION}-linux-ppc64le.zip"
+cp ../ffmpeg/ffmpeg.zip "${assets_dir}/ffmpeg-${PACKAGE_VERSION}-linux-ppc64le.zip"
 cp hunspell_dictionaries.zip "${assets_dir}/hunspell_dictionaries.zip"
 cp libcxx_objects.zip "${assets_dir}/libcxx-objects-${PACKAGE_VERSION}-linux-ppc64le.zip"
 cp libcxx_headers.zip "${assets_dir}/libcxx_headers.zip"
